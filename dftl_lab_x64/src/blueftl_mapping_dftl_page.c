@@ -9,8 +9,6 @@
 #include "blueftl_user_vdevice.h"
 #include "blueftl_mapping_page.h"
 
-#include "blueftl_dftl_list.h" //for doubly linked list
-#include "blueftl_dftl_hash.h" //for linear hashing
 #include "blueftl_mapping_dftl_page.h"
 #include "blueftl_gc_page.h"
 
@@ -21,7 +19,7 @@ static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_con
 static struct dftl_cached_mapping_entry_t* create_entry(uint32_t dirty, uint32_t logical_page_address, uint32_t physical_page_address);
 
 //check the CMT whether it is full
-static uint32_t isFull(struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address);
+static uint32_t isFull(struct dftl_context_t* ptr_dftl_context);
 
 //evict the CMT entry
 static void evict_cmt(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context);
@@ -38,7 +36,52 @@ uint32_t dftl_get_physical_address(
 		uint32_t logical_page_address){
 
 	/*Write Your Own Code*/
+	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
+	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
+		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
+	struct dftl_context_t* ptr_dftl_table = ptr_ftl_context->ptr_dftl_table;
+	struct dftl_cached_mapping_entry_t** dftl_cached_mapping_table = ptr_dftl_table->ptr_cached_mapping_table;
+	struct dftl_cached_mapping_entry_t* new_cached_mapping_entry = NULL;
+	uint32_t i, nr_entries, physical_page_address;
 
+	/* step 1. search in CMT ; hit -> end, miss -> next step */
+	nr_entries = ptr_dftl_table->nr_cached_mapping_table_entries;
+	for(i=0; i<nr_entries; i++) {
+		if(dftl_cached_mapping_table[i]->logical_page_address == logical_page_address) {
+			return dftl_cached_mapping_table[i]->physical_page_address; 
+		}
+	}
+
+	/* step 2. if not in CMT, it should make new entry for CMT */
+	/* step 2-1. before that we should check CMT is full or not */
+	if(isFull(ptr_dftl_table) == 1) {
+		/* step 2-2. if full, we should evict one entry in CMT */
+		evict_cmt(ptr_ftl_context, ptr_dftl_table);
+	}
+	/* step 2-3. if free CMT entry is, allocate new entry */
+	/* before that we should read from GTD */
+	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address)) == GTD_FREE) {
+		printf("dftl_get_physical_address : That page isn't dirty yet\n");
+		return -1;
+	}
+	/* step 2-4. search just evicted entry in CMT */
+	for(i=0; i<nr_entries; i++) {
+		if(dftl_cached_mapping_table[i] == NULL) {
+			goto find_evicted;
+		}
+	}
+	/* error : can't find evicted entry */
+	printf("dftl_get_physical_address : evict_cmt failed, there is no free entry in CMT\n");
+	return -1;
+
+find_evicted:
+	/* step 2-5. find free slot in CMT, create new entry and allocate */
+	if((new_cached_mapping_entry = create_entry(0, logical_page_address, physical_page_address)) == NULL) {
+		return -1;
+	}
+	dftl_cached_mapping_table[i] = new_cached_mapping_entry;
+
+	return physical_page_address;
 }
 
 //insert a new translation entry into the CMT 
@@ -77,7 +120,16 @@ static struct dftl_cached_mapping_entry_t* create_entry(
 		uint32_t physical_page_address){
 	
 	/*Write Your Own Code*/
+	struct dftl_cached_mapping_entry_t *tmp;
+	if((tmp = (struct dftl_cached_mapping_entry_t*)malloc(sizeof(dftl_cached_mapping_entry_t))) == NULL) {
+		printf("create_entry : memory allocation failed for new entry in CMT\n");
+		return NULL;
+	}
+	tmp->logical_page_address = logical_page_address;
+	tmp->physical_page_address = physical_page_address;
+	tmp->dirty = dirty;
 
+	return tmp;
 }
 
 //update the CMT by using eviction and inserting
@@ -94,10 +146,10 @@ uint32_t update_cmt(
 
 //check the CMT is full
 static uint32_t isFull(
-		struct dftl_context_t* ptr_dftl_context, 
-		uint32_t logical_page_address){
+		struct dftl_context_t* ptr_dftl_context){
 
 	/*Write Your Own Code*/
+	return (ptr_dftl_context->nr_cached_mapping_table_entries == CMT_MAX) ? 1 : 0;
 
 }
 

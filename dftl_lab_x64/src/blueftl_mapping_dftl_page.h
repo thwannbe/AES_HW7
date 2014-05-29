@@ -2,17 +2,19 @@
 #define DFTL_MAPPING
 
 #define CMT_MAX 1024 
+#define GTD_FREE -1
 
 uint32_t GTD_MAX;
 
-struct cache_mapping_table {
+struct dftl_cached_mapping_entry_t {
 	uint32_t logical_page_address;
 	uint32_t physical_page_address;
+	uint32_t dirty;
 };
 
 struct dftl_context_t {
 	uint32_t nr_cached_mapping_table_entries; 	/* the number of CMT */
-	struct cache_mapping_table* ptr_cached_mapping_table;			/* for the dftl cached mapping */
+	struct dftl_cached_mapping_entry_t** ptr_cached_mapping_table;			/* for the dftl cached mapping */
 	uint32_t* ptr_global_translation_directory;	/* for the storing entire address informations */
 };
 
