@@ -36,10 +36,9 @@ uint32_t dftl_get_physical_address(
 		uint32_t logical_page_address){
 
 	/*Write Your Own Code*/
-	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
-	struct dftl_context_t* ptr_dftl_table = ptr_ftl_context->ptr_dftl_table;
+	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 	struct dftl_cached_mapping_entry_t** dftl_cached_mapping_table = ptr_dftl_table->ptr_cached_mapping_table;
 	struct dftl_cached_mapping_entry_t* new_cached_mapping_entry = NULL;
 	uint32_t i, nr_entries, physical_page_address;
@@ -121,7 +120,7 @@ static struct dftl_cached_mapping_entry_t* create_entry(
 	
 	/*Write Your Own Code*/
 	struct dftl_cached_mapping_entry_t *tmp;
-	if((tmp = (struct dftl_cached_mapping_entry_t*)malloc(sizeof(dftl_cached_mapping_entry_t))) == NULL) {
+	if((tmp = (struct dftl_cached_mapping_entry_t*)malloc(sizeof(struct dftl_cached_mapping_entry_t))) == NULL) {
 		printf("create_entry : memory allocation failed for new entry in CMT\n");
 		return NULL;
 	}
