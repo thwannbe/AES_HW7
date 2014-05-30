@@ -190,13 +190,44 @@ static uint32_t get_mapping_from_gtd(
 		struct ftl_context_t* ptr_ftl_context,
 		struct dftl_context_t* ptr_dftl_context,
 		uint32_t logical_page_address){
-	uint32_t physical_page_address, curr_bus, curr_chip, curr_block, curr_page;
-	uint32_t physical_translation_page_address;
-	uint8_t* ptr_buff = (uint8_t*)malloc(sizeof(uint8_t) * FLASH_PAGE_SIZE); 
+	uint32_t physical_page_address, curr_bus, curr_chip, curr_block, curr_page, loop;
+	/* curr_bus = curr_chip = 0 */
+	uint32_t physical_translation_page_address, physical_translation_page_offset; 
+	uint32_t* ptr_global_translation_directory = ptr_dftl_context->ptr_global_translation_directory;
+	uint32_t ptr_page_in_gtd = logical_page_address/512;
+	uint8_t* ptr_buff = (uint8_t*)malloc(sizeof(uint8_t) * FLASH_PAGE_SIZE);
 	
 	/*Write Your Own Code*/
 
+	/* page_offset is aligned as uint8_t */
+	physical_translation_page_offset = (logical_page_address % 512) * 4;
+	if((physical_translation_page_address = ptr_global_translation_directory[ptr_page_in_gtd]) == GTD_FREE) {
+		return -1;
+	}
+	ftl_convert_to_ssd_layout (physical_translation_page_address, &curr_bus, &curr_chip, &curr_block, &curr_page);
+	/* now get target translation page ssd layout */
 	
+	blueftl_user_vdevice_page_read (
+		_ptr_vdevice,
+		curr_bus, curr_chip, curr_block, curr_page,
+		sizeof(uint8_t) * FLASH_PAGE_SIZE,
+		(char*)ptr_buff);
+	perf_inc_page_reads();
+	/* now ptr_buff has target translation page table */
+
+	physical_page_address = 0;
+	for(loop = 0; loop < 4; loop++)	{
+		uint32_t tmp;
+		physical_page_address = physical_page_address << 8;
+		tmp = (uint32_t)ptr_buff[physical_translation_page_offset + 3 - loop];
+		physical_page_address |= tmp;
+	}
+	/* now get real physical_page_address */
+	
+	if(ptr_buff)
+		free(ptr_buff);
+	
+	return physical_page_address;
 }
 
 /* Write Back Dirty Translation Entry into Translation Page */
