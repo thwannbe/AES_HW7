@@ -10,6 +10,7 @@
 #include "blueftl_util.h"
 
 #include<math.h>
+#include<string.h>
 #include "blueftl_mapping_dftl_page.h"
 
 struct ftl_base_t ftl_base_dftl_mapping = {
@@ -37,6 +38,8 @@ uint32_t init_dftl(struct ftl_context_t* ptr_ftl_context){
 	if((ptr_pg_mapping->ptr_dftl_table->ptr_global_translation_directory = (uint32_t*)malloc(sizeof(uint32_t) * 128)) == NULL) {
 		printf ("blueftl_mapping_page: there is no enough memory that will be used for an dftl GTD\n");
 	}
+	memset (ptr_pg_mapping->ptr_dftl_table->ptr_global_translation_directory,
+			GTD_FREE, sizeof(uint32_t) * 128);
 	ptr_pg_mapping->ptr_dftl_table->nr_cached_mapping_table_entries = 0;
 
 	return 0;
