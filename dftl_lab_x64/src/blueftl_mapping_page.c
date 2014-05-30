@@ -267,8 +267,11 @@ void dftl_mapping_destroy_ftl_context(struct ftl_context_t* ptr_ftl_context)
 
 	if (ptr_pg_mapping->ptr_translation_blocks != NULL)
 	{	
-		for(loop = 0; loop < NR_TRANS; loop++)
-		free(ptr_pg_mapping->ptr_translation_blocks + loop);
+		for(loop = 0; loop < NR_TRANS; loop++){
+			if(ptr_pg_mapping->ptr_translation_blocks[loop] != NULL) {
+				free(ptr_pg_mapping->ptr_translation_blocks + loop);
+			}
+		}
 	}
 
 	/* destroy the ftl context */

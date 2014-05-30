@@ -59,11 +59,11 @@ uint32_t dftl_get_physical_address(
 	}
 	/* step 2-3. if free CMT entry is, allocate new entry */
 	/* before that we should read from GTD */
-	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address)) == GTD_FREE) {
-		printf("dftl_get_physical_address : That page isn't dirty yet\n");
+	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address)) == -1) {
+		printf("dftl_get_physical_address : No such page in GDT\n");
 		return -1;
 	}
-	/* step 2-4. search just evicted entry in CMT */
+	/* step 2-4. search just evicted entry(from step 2-2) or fist free entry(from 2-1) in CMT */
 	for(i=0; i<nr_entries; i++) {
 		if(dftl_cached_mapping_table[i] == NULL) {
 			goto find_evicted;
@@ -79,6 +79,7 @@ find_evicted:
 		return -1;
 	}
 	dftl_cached_mapping_table[i] = new_cached_mapping_entry;
+	ptr_dftl_table->nr_cached_mapping_table_entries++;
 
 	return physical_page_address;
 }
