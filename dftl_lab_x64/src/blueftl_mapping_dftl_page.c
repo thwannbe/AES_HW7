@@ -90,7 +90,30 @@ uint32_t dftl_map_logical_to_physical(
 		uint32_t physical_page_address){
 
 	/*Write Your Own Code*/
+	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
+		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
+	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
+	struct dftl_cached_mapping_entry_t** dftl_cached_mapping_table = ptr_dftl_table->ptr_cached_mapping_table;
+	struct dftl_cached_mapping_entry_t* target_page_entry = NULL;
+	uint32_t i, nr_entries;
 
+	/* step 1. find target entry which match logical_page_address in CMT */
+	nr_entries = ptr_dftl_table->nr_cached_mapping_table_entries;
+	for(i=0; i<nr_entries; i++) {
+		if(dftl_cached_mapping_table[i]->logical_page_address == logical_page_address) {
+			goto find_matched;
+		}
+	}
+	/* not find out matched entry -> error */
+	printf("dftl_map_logical_to_physical : No such page in CMT\n");
+	return -1;
+
+find_matched:
+	target_page_entry = dftl_cached_mapping_table[i];
+	target_page_entry->physical_page_address = physical_page_address;
+	target_page_entry->dirty = 1;
+
+	return 0;
 }
 
 //modfiy the GTD
@@ -172,6 +195,7 @@ static uint32_t get_mapping_from_gtd(
 	uint8_t* ptr_buff = (uint8_t*)malloc(sizeof(uint8_t) * FLASH_PAGE_SIZE); 
 	
 	/*Write Your Own Code*/
+
 	
 }
 
