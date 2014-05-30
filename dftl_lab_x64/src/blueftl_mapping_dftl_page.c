@@ -52,18 +52,17 @@ uint32_t dftl_get_physical_address(
 	}
 
 	/* step 2. if not in CMT, it should make new entry for CMT */
-	/* step 2-1. before that we should check CMT is full or not */
+	/* before that we should read from GTD */
+	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address)) == -1) {
+		printf("dftl_get_physical_address : No such page in GDT\n");
+		return -2;
+	}
+	/* step 2-1. at first we should check CMT is full or not */
 	if(isFull(ptr_dftl_table) == 1) {
 		/* step 2-2. if full, we should evict one entry in CMT */
 		evict_cmt(ptr_ftl_context, ptr_dftl_table);
 	}
-	/* step 2-3. if free CMT entry is, allocate new entry */
-	/* before that we should read from GTD */
-	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address)) == -1) {
-		printf("dftl_get_physical_address : No such page in GDT\n");
-		return -1;
-	}
-	/* step 2-4. search just evicted entry(from step 2-2) or fist free entry(from 2-1) in CMT */
+	/* step 2-3. search just evicted entry(from step 2-2) or fist free entry(from 2-1) in CMT */
 	for(i=0; i<nr_entries; i++) {
 		if(dftl_cached_mapping_table[i] == NULL) {
 			goto find_evicted;
@@ -74,7 +73,7 @@ uint32_t dftl_get_physical_address(
 	return -1;
 
 find_evicted:
-	/* step 2-5. find free slot in CMT, create new entry and allocate */
+	/* step 2-4. find free slot in CMT, create new entry and allocate */
 	if((new_cached_mapping_entry = create_entry(0, logical_page_address, physical_page_address)) == NULL) {
 		return -1;
 	}
