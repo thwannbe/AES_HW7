@@ -2,7 +2,6 @@
 #define DFTL_MAPPING
 
 #define CMT_MAX 1024 
-#define NR_TRANS 2
 #define GTD_FREE -1
 
 uint32_t GTD_MAX;

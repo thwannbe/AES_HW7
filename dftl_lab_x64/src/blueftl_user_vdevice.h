@@ -12,6 +12,7 @@ extern struct virtual_device_t* _ptr_vdevice;
 #define	NR_CHIPS_PER_BUS		1
 #define NR_BLOCKS_PER_CHIP		1024
 #define NR_OVERPROVISIONING_BLOCKS	200
+#define NR_TRANS			NR_OVERPROVISIONING_BLOCKS
 #define	NR_PAGES_PER_BLOCK		64
 #define FLASH_PAGE_SIZE			2048
 #define FLASH_PAGE_OOB_SIZE     64
