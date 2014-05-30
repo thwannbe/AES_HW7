@@ -472,8 +472,6 @@ int32_t map_logical_to_physical(struct ftl_context_t* ptr_ftl_context, uint32_t 
 	/* Write Your Own Code */
 	struct flash_block_t* ptr_erase_block;
 	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
-	struct ftl_page_mapping_table_t* ptr_mapping_table = 
-		((struct ftl_page_mapping_context_t*)(ptr_ftl_context->ptr_mapping))->ptr_mapping_table;
 
 	uint32_t curr_bus, curr_chip, curr_block, curr_page;
 	uint32_t previous_physical_page_address;
