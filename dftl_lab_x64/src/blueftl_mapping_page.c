@@ -399,8 +399,33 @@ int32_t dftl_mapping_get_mapped_physical_page_address (
 {
 
 	/* Write Your Own Code */
+	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
+	struct ftl_page_mapping_context_t* ptr_page_mapping = (struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 
-	return 0;
+	uint32_t physical_page_address;
+	int32_t ret = -1;
+	
+	/* obtain the physical page address using the page mapping table */
+	if((physical_page_address = dftl_get_physical_address(ptr_ftl_context, logical_page_address)) == -1) {
+		/* the requested logical page is not mapped to any physical page */
+		*ptr_bus = *ptr_chip = *ptr_block = *ptr_page = -1;
+		ret = -1;
+	} else { /* the requested logical page is matched with physical page */
+		struct flash_page_t* ptr_erase_page = NULL;
+		
+		/* decoding the physical page address */
+		ftl_convert_to_ssd_layout (physical_page_address, ptr_bus, ptr_chip, ptr_block, ptr_page);
+		
+		ptr_erase_page = &ptr_ssd->list_buses[*ptr_bus].list_chips[*ptr_chip].list_blocks[*ptr_block].list_pages[*ptr_page];
+		if (ptr_erase_page->page_status == PAGE_STATUS_FREE) {
+			/* the logical page must be mapped to the corresponding physical page */
+			*ptr_bus = *ptr_chip = *ptr_block = *ptr_page = -1;
+			ret = -1;
+		} else {
+			ret = 0;
+		}
+	}
+	return ret;
 }
 
 int32_t dftl_mapping_get_free_physical_page_address (
