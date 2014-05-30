@@ -61,6 +61,62 @@ uint32_t destroy_dftl(struct dftl_context_t* ptr_dftl_context){
 	return 0;
 }
 
+uint32_t init_translation_blocks(struct ftl_context_t* ptr_ftl_context)
+{
+	uint32_t loop_bus, loop_chip;
+	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
+	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
+		(struct ftl_page_mapping_context_t *)ptr_ftl_context->ptr_mapping;
+	struct flash_block_t* ptr_erase_block;
+
+	for (loop_bus = 0; loop_bus < ptr_ssd->nr_buses; loop_bus++) 
+	{
+		for (loop_chip = 0; loop_chip < ptr_ssd->nr_chips_per_bus; loop_chip++) 
+		{
+			if ((ptr_erase_block = ssdmgmt_get_free_block (ptr_ssd, loop_bus, loop_chip))) 
+			{
+				*(ptr_pg_mapping->ptr_translation_blocks + (loop_bus * ptr_ssd->nr_chips_per_bus + loop_chip)) = ptr_erase_block;
+			} 
+			else 
+			{
+				// OOPS!!! ftl needs a garbage collection.
+				printf ("blueftl_mapping_page: there is no free block that will be used for an translation block\n");
+			}
+		}
+	}
+
+	return 0;
+}
+
+uint32_t init_gc_tblocks(struct ftl_context_t* ptr_ftl_context)
+{
+	uint32_t loop_chip, loop_bus;
+
+	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
+	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
+		(struct ftl_page_mapping_context_t *)ptr_ftl_context->ptr_mapping;
+	struct flash_block_t* ptr_erase_block;
+
+	for (loop_bus = 0; loop_bus < ptr_ssd->nr_buses; loop_bus++) 
+	{
+		for (loop_chip = 0; loop_chip < ptr_ssd->nr_chips_per_bus; loop_chip++) 
+		{
+			if ((ptr_erase_block = ssdmgmt_get_free_block(ptr_ssd, loop_bus, loop_chip))!= NULL) 
+			{
+				*(ptr_pg_mapping->ptr_gc_tblocks + (loop_bus * ptr_ssd->nr_chips_per_bus + loop_chip)) = ptr_erase_block;
+				ptr_erase_block->is_reserved_block = 1;
+			} 
+			else 
+			{
+				// OOPS!!! ftl needs a garbage collection.
+				printf ("blueftl_mapping_page: there is no free block that will be used for a gc tblock\n");
+			}
+		}
+	}
+
+	return 0;
+}
+
 uint32_t init_gc_blocks(struct ftl_context_t* ptr_ftl_context)
 {
 	uint32_t loop_chip, loop_bus;
@@ -174,6 +230,26 @@ struct ftl_context_t* dftl_mapping_create_ftl_context (struct virtual_device_t* 
 	}
 	
 	init_dftl (ptr_ftl_context);
+	
+	/* allocate the memory for the translation blocks */
+	if ((ptr_pg_mapping->ptr_translation_blocks = 
+			(struct flash_block_t**) malloc (sizeof (struct flash_block_t*) * ptr_ssd->nr_buses * ptr_ssd->nr_chips_per_bus)) == NULL) 
+	{
+		printf ("blueftl_mapping_page: error occurs when allocating translation blocks\n");
+		goto error_alloc_translation_block;
+	}
+	
+	init_translation_blocks (ptr_ftl_context);
+
+	/* allocate the memory for the gc tblocks */
+	if ((ptr_pg_mapping->ptr_gc_tblocks = 
+			(struct flash_block_t**) malloc (sizeof (struct flash_block_t*) * ptr_ssd->nr_buses * ptr_ssd->nr_chips_per_bus)) == NULL) 
+	{
+		printf ("blueftl_mapping_page: error occurs when allocating gc tblocks\n");
+		goto error_alloc_gc_tblock;
+	}
+	
+	init_gc_tblocks (ptr_ftl_context);
 
 	/* allocate the memory for the gc blocks */
 	if ((ptr_pg_mapping->ptr_gc_blocks = 
@@ -217,6 +293,12 @@ error_alloc_active_block:
 	free (ptr_pg_mapping->ptr_gc_blocks);
 
 error_alloc_gc_block:
+	free (ptr_pg_mapping->ptr_gc_tblocks);
+
+error_alloc_gc_tblock:
+	free (ptr_pg_mapping->ptr_translation_blocks);
+
+error_alloc_translation_block:
 	free (ptr_pg_mapping->ptr_dftl_table);
 
 error_alloc_dftl_table:
@@ -438,12 +520,54 @@ int32_t dftl_mapping_get_free_physical_page_address (
 	uint32_t *ptr_chip,
 	uint32_t *ptr_block,
 	uint32_t *ptr_page,
-	uint32_t mode)
+	uint32_t mode) /* mode is always 0 */
 {
 
 	/* Write Your Own Code */
+	int32_t ret = -1;
+	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
+	struct ftl_page_mapping_context_t* ptr_pg_mapping = (struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
+	uint32_t physical_page_address;
 
-	return 0;
+	if ((physical_page_address = get_new_free_page_addr (ptr_ftl_context)) == -1) 
+	{
+		/* get the target bus and chip for garbage collection */
+		*ptr_bus = ptr_pg_mapping->ru_bus;
+		*ptr_chip = ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus];
+		*ptr_block = -1;
+		*ptr_page = -1;
+
+		/* getting a new free page faild, so we move to the previous bus */
+		if (ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus] == 0)
+		{
+			ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus] = ptr_ssd->nr_chips_per_bus - 1;
+		}
+		else
+		{
+			ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus]--;
+		}
+
+		if (ptr_pg_mapping->ru_bus == 0)
+		{
+			ptr_pg_mapping->ru_bus = ptr_ssd->nr_buses - 1;
+		}
+		else
+		{
+			ptr_pg_mapping->ru_bus--;
+		}
+
+		/* now, it is time to reclaim garbage */
+		ret = -1;
+	}
+	else 
+	{
+		/* decoding the physical page address */
+		ftl_convert_to_ssd_layout (physical_page_address, ptr_bus, ptr_chip, ptr_block, ptr_page);
+
+		ret = 0;
+	}
+
+	return ret;
 }
 
 int32_t dftl_mapping_map_logical_to_physical (
@@ -456,7 +580,7 @@ int32_t dftl_mapping_map_logical_to_physical (
 	uint32_t mode)
 {
 	uint32_t physical_page_address = ftl_convert_to_physical_page_address (bus, chip, block, page);
-	if(mode == 0)
+	if(mode == 0) /* mode is always 0 */
 	return map_logical_to_physical (ptr_ftl_context, logical_page_address, physical_page_address, 0);
 	else
 	return map_logical_to_physical (ptr_ftl_context, logical_page_address, physical_page_address, 1);
