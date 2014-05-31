@@ -12,8 +12,37 @@
 #include "blueftl_mapping_dftl_page.h"
 #include "blueftl_gc_page.h"
 
+//find the previous entry in the CMT
+static struct dftl_cached_mapping_entry_t* inline find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target)
+{
+	struct dftl_cached_mapping_entry_t* ptr_cached_mapping_table_head =
+		dftl_context_t->ptr_cached_mapping_table_head;
+	struct dftl_cached_mapping_entry_t* loop = NULL;
+	int cnt == 0; /* to avoid infinite loop */
+
+	if(dftl_context_t->nr_cached_mapping_table_entries == 0 && target == ptr_cached_mapping_table_head) {
+		return ptr_cached_mapping_table_head;
+	}
+	if(target == ptr_cached_mapping_table_head) {
+		for(loop=ptr_cached_mapping_table_head->next; loop != target; loop = loop->next) {
+			if(loop->next == target) {
+				return loop;
+			}
+	}
+	else {
+		for(loop=ptr_cached_mapping_table_head; loop != target && cnt < dftl_context_t->nr_cached_mapping_table_entries; loop = loop->next) {
+			if(loop->next == target) {
+				return loop;
+			}
+			cnt++;
+		}
+	}
+	printf("find_prev : can't find target's previous entry in CMT\n");
+	return NULL;
+}
+
 //insert the mapping into the CMT
-static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, int flag);
+static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, struct dftl_cached_mapping_etnry_t* entry, int new);
 
 //create the new cache entry 
 static struct dftl_cached_mapping_entry_t* create_entry(uint32_t dirty, uint32_t logical_page_address, uint32_t physical_page_address);
@@ -39,15 +68,16 @@ uint32_t dftl_get_physical_address(
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
-	struct dftl_cached_mapping_entry_t** dftl_cached_mapping_table = ptr_dftl_table->ptr_cached_mapping_table;
-	struct dftl_cached_mapping_entry_t* new_cached_mapping_entry = NULL;
-	uint32_t i, nr_entries, physical_page_address;
+	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
+	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
+	uint32_t physical_page_address;
 
 	/* step 1. search in CMT ; hit -> end, miss -> next step */
-	nr_entries = ptr_dftl_table->nr_cached_mapping_table_entries;
-	for(i=0; i<nr_entries; i++) {
-		if(dftl_cached_mapping_table[i]->logical_page_address == logical_page_address) {
-			return dftl_cached_mapping_table[i]->physical_page_address; 
+	for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
+		target_cached_mapping_entry != dftl_cached_mapping_table_head;
+		target_cached_mapping_entry = target_cached_mapping_entry->next) {
+		if(target_cached_mapping_entry->logical_page_address == logical_page_address) {
+			return target_cached_mapping_entry->physical_page_address; 
 		}
 	}
 
@@ -62,23 +92,15 @@ uint32_t dftl_get_physical_address(
 		/* step 2-2. if full, we should evict one entry in CMT */
 		evict_cmt(ptr_ftl_context, ptr_dftl_table);
 	}
-	/* step 2-3. search just evicted entry(from step 2-2) or fist free entry(from 2-1) in CMT */
-	for(i=0; i<nr_entries; i++) {
-		if(dftl_cached_mapping_table[i] == NULL) {
-			goto find_evicted;
-		}
-	}
-	/* error : can't find evicted entry */
-	printf("dftl_get_physical_address : evict_cmt failed, there is no free entry in CMT\n");
-	return -1;
-
-find_evicted:
-	/* step 2-4. find free slot in CMT, create new entry and allocate */
-	if((new_cached_mapping_entry = create_entry(0, logical_page_address, physical_page_address)) == NULL) {
+	/* step 2-2. find free slot in CMT, create new entry and allocate */
+	if((target_cached_mapping_entry = create_entry(0, logical_page_address, physical_page_address)) == NULL) {
 		return -1;
 	}
-	dftl_cached_mapping_table[i] = new_cached_mapping_entry;
-	ptr_dftl_table->nr_cached_mapping_table_entries++;
+	/* step 2-3. insert mapping */
+	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, logical_page_address, physical_page_address, target_cached_mapping_entry, 1)) == -1) {
+		printf("dftl_get_physical_address : insert_mapping for new read entry is failed\n");
+		return -1;
+	}
 
 	return physical_page_address;
 }
@@ -93,25 +115,33 @@ uint32_t dftl_map_logical_to_physical(
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
-	struct dftl_cached_mapping_entry_t** dftl_cached_mapping_table = ptr_dftl_table->ptr_cached_mapping_table;
-	struct dftl_cached_mapping_entry_t* target_page_entry = NULL;
-	uint32_t i, nr_entries;
+	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
+	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
+	int new;
 
 	/* step 1. find target entry which match logical_page_address in CMT */
-	nr_entries = ptr_dftl_table->nr_cached_mapping_table_entries;
-	for(i=0; i<nr_entries; i++) {
-		if(dftl_cached_mapping_table[i]->logical_page_address == logical_page_address) {
+	for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
+		target_cached_mapping_entry != dftl_cached_mapping_table_head;
+		target_cached_mapping_entry = target_cached_mapping_entry->next) {
+		if(target_cached_mapping_entry->logical_page_address == logical_page_address) {
+			new = 0; /* originally in CMT */
 			goto find_matched;
 		}
 	}
-	/* not find out matched entry -> error */
-	printf("dftl_map_logical_to_physical : No such page in CMT\n");
-	return -1;
 
+	/* step 2. not find out matched entry -> new entry */
+	if((target_cached_mapping_entry = create_entry(1, logical_page_address, physical_page_address)) == NULL) {
+		printf("dftl_map_logical_to_physical : create_entry for new entry is failed\n");
+		return -1;
+	}
+	new = 1; /* it is new entry */
+	
 find_matched:
-	target_page_entry = dftl_cached_mapping_table[i];
-	target_page_entry->physical_page_address = physical_page_address;
-	target_page_entry->dirty = 1;
+	/* step 3. insert entry into CMT */
+	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, logical_page_address, physical_page_address, target_cached_mapping_entry, new)) == -1) {
+		printf("dftl_map_logical_to_physical : insert_mapping for new read entry is failed\n");
+		return -1;
+	}
 
 	return 0;
 }
@@ -129,10 +159,36 @@ static int insert_mapping(
 		struct dftl_context_t* ptr_dftl_context,
 		uint32_t logical_page_address,
 		uint32_t physical_page_address,
-		int flag){
+		struct dftl_cached_mapping_etnry_t* entry
+		int new){
 	
 	/*Write Your Own Code*/
+	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_context->ptr_cached_mapping_table_head;
+	struct dftl_cached_mapping_entry_t* prev = NULL;
+	struct dftl_cached_mapping_entry_t* origin_last = NULL;
 
+	/* step 1. check if cmt is full or not */
+	if(isFull(ptr_dflt_context) == 1) {
+		printf("insert_mapping : ptr_dftl_table is already full\n");
+		return -1;
+	}
+	if(!new) { /* old entry reordered */
+		if((prev = find_prev(ptr_dftl_context, entry)) == NULL) {
+			printf("insert_mapping : can't find prev entry in CMT\n");
+			return -1;
+		}
+		prev->next = entry->next;
+	}
+	entry->next = dftl_cached_mapping_table_head;
+	if((origin_last = find_prev(ptr_dftl_context, dftl_cached_mapping_table_head)) == NULL) {
+		printf("insert_mapping : can't find last entry in CMT\n");
+		return -1;
+	}
+	origin_last->next = entry;
+
+	ptr_dftl_table->nr_cached_mapping_table_entries++;
+
+	return 0;
 }
 
 //create a new CMT entry
@@ -181,7 +237,37 @@ static void evict_cmt(
 		struct dftl_context_t* ptr_dftl_context){
 
 	/*Write Your Own Code*/
+	struct dftl_cached_mapping_entry_t* victim = ptr_dftl_context->ptr_cached_mapping_table_head->next;
+	struct dftl_cached_mapping_entry_t* loop = NULL;
+	uint32_t index, physical_tpage_address;
 
+	if(victim->dirty == 0) { /* it could be evicted without gtd modification */
+		ptr_dftl_context->ptr_cached_mapping_table_head->next = victim->next;
+		free(victim);
+		ptr_dftl_context->nr_cached_mapping_table_entries--;
+	}
+	else { /* it involves gtd modification */
+		if((physical_tpage_address = write_back_tpage(ptr_ftl_context, ptr_dftl_context, victim)) == -1) {
+			printf("evict_cmt : write back translation page is failed\n");
+			exit(1);
+		}
+		index = victim->logical_page_address/512;
+		if(dftl_modify_gtd(ptr_ftl_context, ptr_dftl_context, index, physical_tpage_address) == -1) {
+			printf("evict_cmt : Global translation directory modification failed\n");
+			exit(1);
+		}
+		/* batch eviction */
+		for(loop = victim; loop != ptr_dftl_context->ptr_cached_mapping_table_head; ) {
+			struct dftl_cached_mapping_entry_t* prev;
+			if(loop->logical_page_address/512 == index) {
+				prev = find_prev(ptr_dftl_context, loop);
+				prev->next = loop->next;
+				free(loop);
+				ptr_dftl_context->nr_cached_mapping_table_entries--;
+				loop = prev->next;
+			}
+		}
+	}
 	perf_dftl_cmt_eviction();
 }
 
@@ -212,7 +298,7 @@ static uint32_t get_mapping_from_gtd(
 		curr_bus, curr_chip, curr_block, curr_page,
 		sizeof(uint8_t) * FLASH_PAGE_SIZE,
 		(char*)ptr_buff);
-	perf_inc_page_reads();
+	perf_inc_tpage_reads();
 	/* now ptr_buff has target translation page table */
 
 	physical_page_address = 0;
