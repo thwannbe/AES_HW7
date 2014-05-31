@@ -3,7 +3,6 @@
 
 #define CMT_MAX 1024 
 #define GTD_FREE -1
-#define LRU_FREE -1
 
 uint32_t GTD_MAX;
 

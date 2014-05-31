@@ -125,7 +125,14 @@ find_matched:
 uint32_t dftl_modify_gtd(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t index, uint32_t physical_page_address){
 
 	/*Write Your Own Code*/
-	
+	/* check index is out of range */
+	if(index >= 128) {
+		printf("dftl_modify_gtd : index is out of range\n");
+		return -1;
+	}
+	ptr_dftl_context->ptr_global_translation_directory[index] = physical_page_address;
+
+	return 0;	
 }
 
 static struct dftl_cached_mapping_entry_t* find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target)
@@ -285,15 +292,25 @@ static uint32_t get_mapping_from_gtd(
 	/* curr_bus = curr_chip = 0 */
 	uint32_t physical_translation_page_address, physical_translation_page_offset; 
 	uint32_t* ptr_global_translation_directory = ptr_dftl_context->ptr_global_translation_directory;
-	uint32_t ptr_page_in_gtd = logical_page_address/512;
+	uint32_t index_global_translation_directory = logical_page_address/512;
 	uint8_t* ptr_buff = (uint8_t*)malloc(sizeof(uint8_t) * FLASH_PAGE_SIZE);
 	
 	/*Write Your Own Code*/
 
-	/* page_offset is aligned as uint8_t */
-	physical_translation_page_offset = (logical_page_address % 512) * 4;
-	if((physical_translation_page_address = ptr_global_translation_directory[ptr_page_in_gtd]) == GTD_FREE) {
-		return -1;
+	/* page_offset is aligned as uint8_t, check if this offset is out of range */
+	if((physical_translation_page_offset = (logical_page_address % 512) * 4) >= FLASH_PAGE_SIZE) {
+		printf("get_mapping_from_gtd : translation_page offset in gtd is out of range\n");
+		physical_page_address = -1;
+		goto failed;
+	}
+	if(index_global_translation_directory >= 128) {
+		printf("get_mapping_from_gtd : index_global_translation_directory is out of range\n");
+		physical_page_address = -1;
+		goto failed;
+	}
+	if((physical_translation_page_address = ptr_global_translation_directory[index_global_translation_directory]) == GTD_FREE) {
+		physical_page_address = -1;
+		goto failed;
 	}
 	ftl_convert_to_ssd_layout (physical_translation_page_address, &curr_bus, &curr_chip, &curr_block, &curr_page);
 	/* now get target translation page ssd layout */
@@ -314,10 +331,15 @@ static uint32_t get_mapping_from_gtd(
 		physical_page_address |= tmp;
 	}
 	/* now get real physical_page_address */
-	
+	if(physical_page_address == GTD_FREE) {
+		printf("get_mapping_from_gtd : read physical addr is free addr\n");
+		physical_page_address = -1;
+	}
+
+failed:
 	if(ptr_buff)
 		free(ptr_buff);
-	
+
 	return physical_page_address;
 }
 
@@ -328,6 +350,145 @@ static uint32_t write_back_tpage(
 		struct dftl_cached_mapping_entry_t* ptr_evict){
 
 	/*Write Your Own Code*/
+	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
+	uint32_t modified_physical_page_address, curr_bus, curr_chip, curr_block, curr_page, loop;
+	/* curr_bus = curr_chip = 0 */
+	uint32_t physical_translation_page_address, physical_translation_page_offset; 
+	uint32_t* ptr_global_translation_directory = ptr_dftl_context->ptr_global_translation_directory;
+	uint32_t index_global_translation_directory;
+	uint8_t* ptr_buff = (uint8_t*)malloc(sizeof(uint8_t) * FLASH_PAGE_SIZE);
+	struct dftl_cached_mapping_entry_t* ptr_cached_mapping_table_head = ptr_dftl_context->ptr_cached_mapping_table_head;
+	struct dftl_cached_mapping_entry_t* loop_entry = NULL;
+	struct flash_block_t* ptr_translation_block = NULL;
+	struct ftl_page_mapping_context_t* ptr_pg_mapping =
+		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
+	uint32_t ret = 0;
+	
+	/* initialize ptr_buff in case of new entry */
+	memset(ptr_buff, GTD_FREE, sizeof(uint8_t) * FLASH_PAGE_SIZE); /* filled with 0xff */ 
+
+	/* step 1. get original translation page */
+
+	/* to do that, we should get original translation page physical addr */
+	if((index_global_translation_directory = ptr_evict->logical_page_address/512) >= 128) {
+		printf("write_back_tpage : index_global_translation_directory is out of range\n");
+		ret = -1;
+		goto failed;
+	}
+	/* if target translation page addr is not existed, it is new member -> make new translation page */
+	if((physical_translation_page_address = ptr_global_translation_directory[index_global_translation_directory]) == GTD_FREE) {
+		goto new_entry;
+	}
+	/* this path is old member who already exists in tp */
+	ftl_convert_to_ssd_layout (physical_translation_page_address, &curr_bus, &curr_chip, &curr_block, &curr_page);
+	/* now get target translation page ssd layout */
+	
+	blueftl_user_vdevice_page_read (
+		_ptr_vdevice,
+		curr_bus, curr_chip, curr_block, curr_page,
+		sizeof(uint8_t) * FLASH_PAGE_SIZE,
+		(char*)ptr_buff);
+	perf_inc_tpage_reads();
+	/* now ptr_buff has target translation page table */
+
+new_entry: /* step 2. modify translation page in buffer */
+
+	modified_physical_page_address = ptr_evict->physical_page_address;
+	if((physical_translation_page_offset = (logical_page_address % 512) * 4) >= FLASH_PAGE_SIZE) {
+		printf("write_back_tpage : translation_page offset in gtd is out of range\n");
+		ret = -1;
+		goto failed;
+	}
+	/* modify translation page */
+	for(loop = 0; loop < 4; loop++)	{
+		uint8_t tmp;
+		uint32_t tmp_32;
+		tmp_32 = (modified_physical_page_address >> 8*(3-loop)) & 0xff; /* taken only 1 bit */
+		tmp = (uint8_t) tmp_32;
+		ptr_buff[physical_translation_page_offset + 3 - loop] = tmp;
+	}
+	/* now modified evicted entry -> now time to batch eviction */
+	
+	/* step 3. batch eviction */
+	for(loop_entry=ptr_evict->next; loop_entry != ptr_cached_mapping_table_head; loop_entry = loop_entry->next) {
+		if(loop_entry->logical_page_address/512 == index_global_translation_directory && loop_entry->dirty == 1) {
+			modified_physical_page_address = loop_entry->physical_page_address;
+			if((physical_translation_page_offset = (loop_entry->logical_page_address % 512) * 4) >= FLASH_PAGE_SIZE) {
+				printf("write_back_tpage : translation_page offset in gtd is out of range\n");
+				ret = -1;
+				goto failed;
+			}
+			/* modify translation page */
+			for(loop = 0; loop < 4; loop++)	{
+				uint8_t tmp;
+				uint32_t tmp_32;
+				tmp_32 = (modified_physical_page_address >> 8*(3-loop)) & 0xff; /* taken only 1 bit */
+				tmp = (uint8_t) tmp_32;
+				ptr_buff[physical_translation_page_offset + 3 - loop] = tmp;
+			}
+		}
+	}
+	
+	/* step 4. write buffer into translation page in ssd */
+	ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
+	if (ptr_translation_block->is_reserved_block != 0 || ptr_translation_block->nr_free_pages == 0)
+	{
+		ptr_translation_block
+			= *(ptr_pg_mapping->ptr_active_block)
+			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
+		
+		if (ptr_translation_block == NULL) {
+			/* need gc tblock */
+			if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
+				printf("write_back_tpage : gc tblock is failed\n");
+				ret = -1;
+				goto failed;
+			}
+			/* one more try */
+			ptr_translation_block
+			= *(ptr_pg_mapping->ptr_active_block)
+			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
+			if (ptr_translation_block == NULL) {
+				printf("write_back_tpage : gc tblock is not working\n");
+				ret = -1;
+				goto failed;
+			}
+		}
+	}
+	/* now we got translation block which has free page for new translation page */
+	/* make invalid previous translation page, if it exists */
+	if(physical_translation_page_address != GTD_FREE) {
+		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_block[curr_block].list_pages[curr_page].page_status =
+			PAGE_STATUS_INVALID;
+	}
+	/* check new page area is free */
+	curr_bus = ptr_translation_block->no_bus;
+	curr_chip = ptr_translation_block->no_chip;
+	curr_block = ptr_translation_block->no_block;
+	curr_page = ptr_ssd->nr_pages_per_block - ptr_translation_block->nr_free_pages; /*the first free page in block */
+	if(ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status != PAGE_STATUS_FREE) {
+		printf("write_back_tpage : target tpage is not free\n");
+		ret = -1;
+		goto failed;
+	}
+	/* make it valid */
+	ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status = PAGE_STATUS_VALID;
+	/* in case of tpage, no_logical_page_addr = index in gtd */
+	ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].no_logical_page_addr = index_global_translation_directory;
+	
+	blueftl_user_vdevice_page_write (
+		_ptr_vdevice,
+		curr_bus, curr_chip, curr_block, curr_page,
+		sizeof(uint8_t) * FLASH_PAGE_SIZE,
+		(char*)ptr_buff);
+	perf_inc_tpage_writes();
+
+	ret = ftl_convert_to_physical_page_address(curr_bus, curr_chip, curr_block, curr_page);
+failed:
+	if(ptr_buff)
+		free(ptr_buff);
+	
+	return ret;
 
 }
 
