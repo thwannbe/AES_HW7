@@ -13,33 +13,7 @@
 #include "blueftl_gc_page.h"
 
 //find the previous entry in the CMT
-static struct dftl_cached_mapping_entry_t* find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target)
-{
-	struct dftl_cached_mapping_entry_t* ptr_cached_mapping_table_head =
-		dftl_context_t->ptr_cached_mapping_table_head;
-	struct dftl_cached_mapping_entry_t* loop = NULL;
-	int cnt == 0; /* to avoid infinite loop */
-
-	if(dftl_context_t->nr_cached_mapping_table_entries == 0 && target == ptr_cached_mapping_table_head) {
-		return ptr_cached_mapping_table_head;
-	}
-	if(target == ptr_cached_mapping_table_head) {
-		for(loop=ptr_cached_mapping_table_head->next; loop != target; loop = loop->next) {
-			if(loop->next == target) {
-				return loop;
-			}
-	}
-	else {
-		for(loop=ptr_cached_mapping_table_head; loop != target && cnt < dftl_context_t->nr_cached_mapping_table_entries; loop = loop->next) {
-			if(loop->next == target) {
-				return loop;
-			}
-			cnt++;
-		}
-	}
-	printf("find_prev : can't find target's previous entry in CMT\n");
-	return NULL;
-}
+//static struct dftl_cached_mapping_entry_t *find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target);
 
 //insert the mapping into the CMT
 static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, struct dftl_cached_mapping_etnry_t* entry, int new);
@@ -68,10 +42,11 @@ uint32_t dftl_get_physical_address(
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
-	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
+	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = NULL;
 	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
 	uint32_t physical_page_address;
 
+	dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 	/* step 1. search in CMT ; hit -> end, miss -> next step */
 	for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
 		target_cached_mapping_entry != dftl_cached_mapping_table_head;
@@ -153,14 +128,46 @@ uint32_t dftl_modify_gtd(struct ftl_context_t* ptr_ftl_context, struct dftl_cont
 	
 }
 
+static struct dftl_cached_mapping_entry_t* find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target)
+{
+	struct dftl_cached_mapping_entry_t* ptr_cached_mapping_table_head =
+		dftl_context_t->ptr_cached_mapping_table_head;
+	struct dftl_cached_mapping_entry_t* loop = NULL;
+	int cnt = 0; /* to avoid infinite loop */
+
+	if(dftl_context_t->nr_cached_mapping_table_entries == 0 && target == ptr_cached_mapping_table_head) {
+		return ptr_cached_mapping_table_head;
+	}
+	if(target == ptr_cached_mapping_table_head) {
+		for(loop=ptr_cached_mapping_table_head->next; loop != target; loop = loop->next) {
+			if(loop->next == target) {
+				return loop;
+			}
+		}
+	}
+	else {
+		for(loop=ptr_cached_mapping_table_head; loop != target && cnt < dftl_context_t->nr_cached_mapping_table_entries; loop = loop->next) {
+			if(loop->next == target) {
+				return loop;
+			}
+			cnt++;
+		}
+	}
+	printf("find_prev : can't find target's previous entry in CMT\n");
+	return NULL;
+}
+
 //insert the entry into the CMT
+/*
 static int insert_mapping(
 		struct ftl_context_t* ptr_ftl_context,
 		struct dftl_context_t* ptr_dftl_context,
 		uint32_t logical_page_address,
 		uint32_t physical_page_address,
-		struct dftl_cached_mapping_etnry_t* entry
-		int new){
+		struct dftl_cached_mapping_etnry_t* entry,
+		int new)*/
+static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, struct dftl_cached_mapping_etnry_t* entry, int new)
+{
 	
 	/*Write Your Own Code*/
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_context->ptr_cached_mapping_table_head;
