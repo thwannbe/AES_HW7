@@ -394,7 +394,7 @@ static uint32_t write_back_tpage(
 new_entry: /* step 2. modify translation page in buffer */
 
 	modified_physical_page_address = ptr_evict->physical_page_address;
-	if((physical_translation_page_offset = (logical_page_address % 512) * 4) >= FLASH_PAGE_SIZE) {
+	if((physical_translation_page_offset = (ptr_evict->logical_page_address % 512) * 4) >= FLASH_PAGE_SIZE) {
 		printf("write_back_tpage : translation_page offset in gtd is out of range\n");
 		ret = -1;
 		goto failed;
@@ -434,7 +434,7 @@ new_entry: /* step 2. modify translation page in buffer */
 	if (ptr_translation_block->is_reserved_block != 0 || ptr_translation_block->nr_free_pages == 0)
 	{
 		ptr_translation_block
-			= *(ptr_pg_mapping->ptr_active_block)
+			= *(ptr_pg_mapping->ptr_translation_blocks)
 			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
 		
 		if (ptr_translation_block == NULL) {
@@ -446,7 +446,7 @@ new_entry: /* step 2. modify translation page in buffer */
 			}
 			/* one more try */
 			ptr_translation_block
-			= *(ptr_pg_mapping->ptr_active_block)
+			= *(ptr_pg_mapping->ptr_translation_blocks)
 			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
 			if (ptr_translation_block == NULL) {
 				printf("write_back_tpage : gc tblock is not working\n");
@@ -458,7 +458,7 @@ new_entry: /* step 2. modify translation page in buffer */
 	/* now we got translation block which has free page for new translation page */
 	/* make invalid previous translation page, if it exists */
 	if(physical_translation_page_address != GTD_FREE) {
-		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_block[curr_block].list_pages[curr_page].page_status =
+		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status =
 			PAGE_STATUS_INVALID;
 	}
 	/* check new page area is free */
