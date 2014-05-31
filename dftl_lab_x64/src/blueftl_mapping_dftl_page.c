@@ -13,10 +13,10 @@
 #include "blueftl_gc_page.h"
 
 //find the previous entry in the CMT
-//static struct dftl_cached_mapping_entry_t *find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target);
+static struct dftl_cached_mapping_entry_t *find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target);
 
 //insert the mapping into the CMT
-static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, struct dftl_cached_mapping_etnry_t* entry, int new);
+static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, struct dftl_cached_mapping_entry_t* entry, int new);
 
 //create the new cache entry 
 static struct dftl_cached_mapping_entry_t* create_entry(uint32_t dirty, uint32_t logical_page_address, uint32_t physical_page_address);
@@ -158,15 +158,13 @@ static struct dftl_cached_mapping_entry_t* find_prev(struct dftl_context_t* dftl
 }
 
 //insert the entry into the CMT
-/*
 static int insert_mapping(
 		struct ftl_context_t* ptr_ftl_context,
 		struct dftl_context_t* ptr_dftl_context,
 		uint32_t logical_page_address,
 		uint32_t physical_page_address,
-		struct dftl_cached_mapping_etnry_t* entry,
-		int new)*/
-static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, struct dftl_cached_mapping_etnry_t* entry, int new)
+		struct dftl_cached_mapping_entry_t* entry,
+		int new)
 {
 	
 	/*Write Your Own Code*/
@@ -175,7 +173,7 @@ static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_con
 	struct dftl_cached_mapping_entry_t* origin_last = NULL;
 
 	/* step 1. check if cmt is full or not */
-	if(isFull(ptr_dflt_context) == 1) {
+	if(isFull(ptr_dftl_context) == 1) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
 		return -1;
 	}
@@ -193,7 +191,7 @@ static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_con
 	}
 	origin_last->next = entry;
 
-	ptr_dftl_table->nr_cached_mapping_table_entries++;
+	ptr_dftl_context->nr_cached_mapping_table_entries++;
 
 	return 0;
 }
