@@ -2,6 +2,10 @@
 #include "blueftl_ssdmgmt.h"
 #include "blueftl_user_vdevice.h"
 
+/* for gc_type */
+#define TBLOCK 0
+#define DBLOCK 1
+
 struct flash_block_t* gc_dftl_select_victim_greedy (
 	struct flash_ssd_t* ptr_ssd,
 	int32_t gc_target_bus, 
