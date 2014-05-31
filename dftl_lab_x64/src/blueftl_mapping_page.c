@@ -64,8 +64,6 @@ uint32_t destroy_dftl(struct dftl_context_t* ptr_dftl_context){
 		}
 		free(ptr_dftl_context->ptr_cached_mapping_table_head);
 	}
-	if(ptr_dftl_context->ptr_cached_mapping_table != NULL)
-		free(ptr_dftl_context->ptr_cached_mapping_table);
 
 	if(ptr_dftl_context->ptr_global_translation_directory != NULL)
 		free(ptr_dftl_context->ptr_global_translation_directory);
