@@ -31,10 +31,13 @@ uint32_t init_dftl(struct ftl_context_t* ptr_ftl_context){
 	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t *)ptr_ftl_context->ptr_mapping;
-	if((ptr_pg_mapping->ptr_dftl_table->ptr_cached_mapping_table = 
-				(struct dftl_cached_mapping_entry_t**)malloc(sizeof(struct dftl_cached_mapping_entry_t*) * CMT_MAX)) == NULL) {
-		printf ("blueftl_mapping_page: there is no enough memory that will be used for an dftl CMT\n");
+	if((ptr_pg_mapping->ptr_dftl_table->ptr_cached_mapping_table_head = 
+				(struct dftl_cached_mapping_entry_t*)malloc(sizeof(struct dftl_cached_mapping_entry_t))) == NULL) {
+		printf ("blueftl_mapping_page: there is no enough memory that will be used for an dftl CMT_head\n");
 	}
+	ptr_pg_mapping->ptr_dftl_table->ptr_cached_mapping_table_head->next =
+		ptr_pg_mapping->ptr_dftl_table->ptr_cached_mapping_table_head;
+
 	if((ptr_pg_mapping->ptr_dftl_table->ptr_global_translation_directory = (uint32_t*)malloc(sizeof(uint32_t) * 128)) == NULL) {
 		printf ("blueftl_mapping_page: there is no enough memory that will be used for an dftl GTD\n");
 	}
