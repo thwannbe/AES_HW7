@@ -28,7 +28,6 @@ struct ftl_base_t ftl_base_dftl_mapping = {
 uint32_t init_dftl(struct ftl_context_t* ptr_ftl_context){
 
 	/* Write Your Own Code */
-	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t *)ptr_ftl_context->ptr_mapping;
 	if((ptr_pg_mapping->ptr_dftl_table->ptr_cached_mapping_table_head = 
@@ -51,12 +50,19 @@ uint32_t init_dftl(struct ftl_context_t* ptr_ftl_context){
 uint32_t destroy_dftl(struct dftl_context_t* ptr_dftl_context){
 
 	/* Write Your Own Code */
-	uint32_t i;
-
-	for(i = 0; i < CMT_MAX; i++) {
-		if(ptr_dftl_context->ptr_cached_mapping_table[i] != NULL) {
-			free(ptr_dftl_context->ptr_cached_mapping_table[i]);
+	struct dftl_cached_mapping_entry_t *loop;
+	
+	/* linked-list deletion */
+	if(ptr_dftl_context->ptr_cached_mapping_table_head != NULL) {
+		for(loop = ptr_dftl_context->ptr_cached_mapping_table_head->next; loop != ptr_dftl_context->ptr_cached_mapping_table_head; ) {
+			struct dftl_cached_mapping_entry_t* next_loop;
+			if(loop != NULL) {
+				next_loop = loop->next;
+				free(loop);
+				loop = next_loop;
+			}
 		}
+		free(ptr_dftl_context->ptr_cached_mapping_table_head);
 	}
 	if(ptr_dftl_context->ptr_cached_mapping_table != NULL)
 		free(ptr_dftl_context->ptr_cached_mapping_table);
@@ -308,8 +314,7 @@ error_alloc_translation_block:
 	free (ptr_pg_mapping->ptr_dftl_table);
 
 error_alloc_dftl_table:
-
-error_alloc_mapping_table_info:
+//error_alloc_mapping_table_info:
 	free (ptr_pg_mapping);
 
 error_alloc_ftl_page_mapping_context:
@@ -596,7 +601,6 @@ int32_t dftl_mapping_get_mapped_physical_page_address (
 
 	/* Write Your Own Code */
 	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
-	struct ftl_page_mapping_context_t* ptr_page_mapping = (struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 
 	uint32_t physical_page_address;
 	int32_t ret = -1;
