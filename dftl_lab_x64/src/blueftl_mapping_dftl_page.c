@@ -13,7 +13,7 @@
 #include "blueftl_gc_page.h"
 
 //find the previous entry in the CMT
-static struct dftl_cached_mapping_entry_t* inline find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target)
+static struct dftl_cached_mapping_entry_t* find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target)
 {
 	struct dftl_cached_mapping_entry_t* ptr_cached_mapping_table_head =
 		dftl_context_t->ptr_cached_mapping_table_head;
