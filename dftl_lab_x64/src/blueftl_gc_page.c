@@ -148,7 +148,7 @@ int32_t gc_dftl_trigger_gc (
 	if(!victim_type) { /* DBLOCK */
 		if(ptr_victim_block->nr_valid_pages >0){
 			for(loop_page_victim = 0; loop_page_victim < ptr_ssd->nr_pages_per_block; loop_page_victim++) {
-				struct flash_page_t* ptr_cur_page = *(ptr_victim_block->list_pages[loop_page_victim]);
+				struct flash_page_t* ptr_cur_page = &(ptr_victim_block->list_pages[loop_page_victim]);
 				if(ptr_cur_page->page_status == PAGE_STATUS_VALID) {
 					logical_page_address = ptr_cur_page->no_logical_page_addr;
 					blueftl_user_vdevice_page_read(
@@ -205,7 +205,7 @@ int32_t gc_dftl_trigger_gc (
 	else { /* TBLOCK */
 		if(ptr_victim_block->nr_valid_pages >0){
 			for(loop_page_victim = 0; loop_page_victim < ptr_ssd->nr_pages_per_block; loop_page_victim++) {
-				struct flash_page_t* ptr_cur_page = *(ptr_victim_block->list_pages[loop_page_victim]);
+				struct flash_page_t* ptr_cur_page = &(ptr_victim_block->list_pages[loop_page_victim]);
 				if(ptr_cur_page->page_status == PAGE_STATUS_VALID) {
 					logical_page_address = ptr_cur_page->no_logical_page_addr;
 					blueftl_user_vdevice_page_read(
@@ -237,7 +237,7 @@ int32_t gc_dftl_trigger_gc (
 					ptr_victim_block->last_modified_time = timer_get_timestamp_in_sec();
 
 					if (ptr_victim_block->nr_valid_pages > 0) {
-						ptr_victim_block->nr_invalid_page++;
+						ptr_victim_block->nr_invalid_pages++;
 						ptr_victim_block->nr_valid_pages--;
 
 						ptr_cur_page->page_status = PAGE_STATUS_INVALID;
