@@ -107,8 +107,13 @@ uint32_t dftl_map_logical_to_physical(
 			goto find_matched;
 		}
 	}
-
+	
 	/* step 2. not find out matched entry -> new entry */
+	/* before that, if CMT is full, need to evict one entry */
+	if(isFull(ptr_dftl_table) == 1) {
+		evict_cmt(ptr_ftl_context, ptr_dftl_table);
+	}
+
 	if((target_cached_mapping_entry = create_entry(1, logical_page_address, physical_page_address)) == NULL) {
 		printf("dftl_map_logical_to_physical : create_entry for new entry is failed\n");
 		return -1;
