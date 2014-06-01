@@ -250,6 +250,7 @@ struct ftl_context_t* dftl_mapping_create_ftl_context (struct virtual_device_t* 
 	}
 	
 	init_translation_blocks (ptr_ftl_context);
+	ptr_pg_mapping->nr_tblock = 1; /* initialize */
 
 	/* allocate the memory for the gc tblocks */
 	if ((ptr_pg_mapping->ptr_gc_tblocks = 
@@ -349,20 +350,23 @@ void dftl_mapping_destroy_ftl_context(struct ftl_context_t* ptr_ftl_context)
 	{
 		free (ptr_pg_mapping->ptr_gc_blocks);
 	}
+	
+	/* destroy translation blocks */
+	if (ptr_pg_mapping->ptr_translation_blocks != NULL) 
+	{
+		free (ptr_pg_mapping->ptr_translation_blocks);
+	}
+	
+	/* destroy gc tblocks */
+	if (ptr_pg_mapping->ptr_gc_tblocks != NULL) 
+	{
+		free (ptr_pg_mapping->ptr_gc_tblocks);
+	}
 
 	if (ptr_pg_mapping->ptr_dftl_table != NULL)
 	{
 		destroy_dftl(ptr_pg_mapping->ptr_dftl_table);
 		free (ptr_pg_mapping->ptr_dftl_table);
-	}
-
-	if (ptr_pg_mapping->ptr_translation_blocks != NULL)
-	{	
-		for(loop = 0; loop < NR_TRANS; loop++){
-			if(ptr_pg_mapping->ptr_translation_blocks[loop] != NULL) {
-				free(ptr_pg_mapping->ptr_translation_blocks + loop);
-			}
-		}
 	}
 
 	/* destroy the ftl context */

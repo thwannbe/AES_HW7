@@ -13,6 +13,9 @@ struct ftl_page_mapping_context_t {
 	/* context for DFTL */
 	struct dftl_context_t* ptr_dftl_table;
 
+	/* for checking the number of translation blocks */
+	uint32_t nr_tblock;
+
 	/* blocks reserved for translation blocks */
 	struct flash_block_t** ptr_translation_blocks;
 
