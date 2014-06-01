@@ -16,7 +16,7 @@
 static struct dftl_cached_mapping_entry_t *find_prev(struct dftl_context_t* dftl_context_t, struct dftl_cached_mapping_entry_t* target);
 
 //insert the mapping into the CMT
-static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address, struct dftl_cached_mapping_entry_t* entry, int new);
+static int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, struct dftl_cached_mapping_entry_t* entry, int new);
 
 //create the new cache entry 
 static struct dftl_cached_mapping_entry_t* create_entry(uint32_t dirty, uint32_t logical_page_address, uint32_t physical_page_address);
@@ -72,7 +72,7 @@ uint32_t dftl_get_physical_address(
 		return -1;
 	}
 	/* step 2-3. insert mapping */
-	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, logical_page_address, physical_page_address, target_cached_mapping_entry, 1)) == -1) {
+	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, target_cached_mapping_entry, 1)) == -1) {
 		printf("dftl_get_physical_address : insert_mapping for new read entry is failed\n");
 		return -1;
 	}
@@ -99,6 +99,10 @@ uint32_t dftl_map_logical_to_physical(
 		target_cached_mapping_entry != dftl_cached_mapping_table_head;
 		target_cached_mapping_entry = target_cached_mapping_entry->next) {
 		if(target_cached_mapping_entry->logical_page_address == logical_page_address) {
+			if(target_cached_mapping_entry->physical_page_address != physical_page_address) {
+				target_cached_mapping_entry->physical_page_address = physical_page_address;
+				target_cached_mapping_entry->dirty = 1;
+			}
 			new = 0; /* originally in CMT */
 			goto find_matched;
 		}
@@ -113,7 +117,7 @@ uint32_t dftl_map_logical_to_physical(
 	
 find_matched:
 	/* step 3. insert entry into CMT */
-	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, logical_page_address, physical_page_address, target_cached_mapping_entry, new)) == -1) {
+	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, target_cached_mapping_entry, new)) == -1) {
 		printf("dftl_map_logical_to_physical : insert_mapping for new read entry is failed\n");
 		return -1;
 	}
@@ -168,8 +172,6 @@ static struct dftl_cached_mapping_entry_t* find_prev(struct dftl_context_t* dftl
 static int insert_mapping(
 		struct ftl_context_t* ptr_ftl_context,
 		struct dftl_context_t* ptr_dftl_context,
-		uint32_t logical_page_address,
-		uint32_t physical_page_address,
 		struct dftl_cached_mapping_entry_t* entry,
 		int new)
 {
