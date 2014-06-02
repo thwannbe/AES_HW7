@@ -9,15 +9,6 @@
 
 unsigned char gc_buff[FLASH_PAGE_SIZE];
 
-//Make at least one free block for the new translation block
-static int32_t gc_dftl_force_free_tblock (
-	struct ftl_context_t* ptr_ftl_context,
-	int32_t gc_target_bus,
-	int32_t gc_target_chip)
-{
-
-}
-
 //Victim selection for GC
 struct flash_block_t* gc_dftl_select_victim_greedy (
 	struct flash_ssd_t* ptr_ssd,
@@ -84,18 +75,7 @@ int32_t gc_dftl_trigger_gc (
 	struct ftl_page_mapping_context_t* ptr_pg_mapping =
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
-
-	/* step 0. if gc_type is TBLOCK, then dftl_force_free_tblock */
-	if(gc_type) {
-		if(gc_dftl_force_free_tblock(ptr_ftl_context, gc_target_bus, gc_target_chip) == -1) {
-			printf("gc_dftl_trigger_gc : gc_dftl_force_free_tblock is failed\n");
-			ret = -1;
-			goto failed;
-		}
-		goto done;
-	}
 	
-	/* the following code is only care about Dblock gc */
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_ssd, gc_target_bus, gc_target_chip)) == NULL) {
 		printf("gc_dftl_trigger_gc : select victim block is failed\n");
@@ -308,14 +288,18 @@ int32_t gc_dftl_trigger_gc (
 		ptr_victim_block->list_pages[loop_page].page_status = PAGE_STATUS_FREE;
 	}
 
-	if(victim_type) /* TBLOCK */
+	if(victim_type) /* victim block was TBLOCK */
 		*(ptr_pg_mapping->ptr_gc_tblocks) = ptr_victim_block;
 	else
 		*(ptr_pg_mapping->ptr_gc_blocks) = ptr_victim_block;
 
 	ptr_gc_block->is_reserved_block = 0;
 
+	if(gc_type) /* gc for new TBLOCK */
+		*(ptr_pg_mapping->ptr_translation_blocks) = ptr_gc_block; /* now new translation block for TBLOCK is ptr_gc_block */
+	else
+		*(ptr_pg_mapping->ptr_active_blocks) = ptr_gc_block; /* now new active block for DBLOCK is ptr_gc_block */
+
 failed:
-done:
 	return ret;
 }
