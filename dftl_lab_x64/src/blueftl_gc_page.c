@@ -38,6 +38,7 @@ int32_t shrink_translation_blocks (
 	 *	copy into buff, and erase all
 	 */
 
+	printf("shrink_translation_blocks called\n");
 	buff_stack = entire_tpage_buff;
 	for(loop = 0; loop < 128; loop++) {
 		uint32_t cur_tpage_paddr = ptr_dftl_table->ptr_global_translation_directory[loop];
@@ -193,6 +194,7 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 	uint32_t nr_cur_invalid_pages;
 	uint32_t loop_block;
 
+	printf("gc_dftl_select_victim_greedy called\n");
 	for(loop_block = 0; loop_block < ptr_ssd->nr_blocks_per_chip; loop_block++) {
 		nr_cur_invalid_pages = 
 			ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
@@ -246,6 +248,7 @@ int32_t gc_dftl_trigger_gc (
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 	
+	printf("gc_dftl_trigger_gc called\n");
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_ssd, gc_target_bus, gc_target_chip)) == NULL) {
 		printf("gc_dftl_trigger_gc : select victim block is failed\n");

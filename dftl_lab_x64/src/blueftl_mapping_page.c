@@ -331,7 +331,6 @@ void dftl_mapping_destroy_ftl_context(struct ftl_context_t* ptr_ftl_context)
 	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
-	int loop;
 
 	/* destroy ru blocks */
 	if (ptr_pg_mapping->ptr_ru_chips != NULL) 
@@ -395,40 +394,16 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t *)ptr_ftl_context->ptr_mapping;
 
-	// (1) choose a bus to be written
-	if (ptr_pg_mapping->ru_bus == (ptr_ssd->nr_buses - 1))
-	{
-		ptr_pg_mapping->ru_bus = 0;
-		
-		curr_bus = ptr_pg_mapping->ru_bus;
-		// (2) choose a chip to be written
-		if (ptr_pg_mapping->ptr_ru_chips[curr_bus] == (ptr_ssd->nr_chips_per_bus - 1))
-		{
-			ptr_pg_mapping->ptr_ru_chips[curr_bus] = 0;
-		}
-		else
-		{
-			ptr_pg_mapping->ptr_ru_chips[curr_bus]++;
-		}
-		
-	}
-	else
-	{
-		ptr_pg_mapping->ru_bus++;
-		curr_bus = ptr_pg_mapping->ru_bus;
-	}
+	printf("get_new_free_page_addr called\n");
 	
-	curr_chip = ptr_pg_mapping->ptr_ru_chips[curr_bus];
-
-	// (3) see if the bus number calculated is different from the real bus number
-	ptr_active_block = *(ptr_pg_mapping->ptr_active_blocks + (curr_bus * ptr_ssd->nr_chips_per_bus + curr_chip));
+	ptr_active_block = *(ptr_pg_mapping->ptr_active_blocks); curr_bus = 0; curr_chip = 0;
 
 	if (ptr_active_block->no_bus != curr_bus || ptr_active_block->no_chip != curr_chip)
 	{
 		printf ("blueftl_mapping_page: the bus number for the active block is not same to the current bus number\n");
 		return -1;
 	}
-
+	printf("get_new_free_page_addr : ptr_active_block is prepared\n");
 	// (4) see if there are free pages to be used in the block
 	if (ptr_active_block->is_reserved_block != 0||ptr_active_block->nr_free_pages == 0) 
 	{
@@ -448,10 +423,12 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 		} 
 		else 
 		{
+			printf("need gc for active block\n");
 			// oops! there is no free block in the bus. Hence we need a garbage collection.
 			return -1;
 		}
 	}
+	printf("get_new_free_page_addr : ptr_active_block check out\n");
 
 	// (5) now we can know that target block and page
 	curr_block = ptr_active_block->no_block;
@@ -459,7 +436,7 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 	
 	// (3) get the physical page address from the layout information
 	curr_physical_page_addr = ftl_convert_to_physical_page_address (curr_bus, curr_chip, curr_block, curr_page);
-
+	printf("get_new_free_page_addr : curr_physical_page_addr is ready\n");
 	return curr_physical_page_addr;
 }
 
@@ -489,6 +466,7 @@ int32_t map_logical_to_physical(struct ftl_context_t* ptr_ftl_context, uint32_t 
 	uint32_t curr_bus, curr_chip, curr_block, curr_page;
 	uint32_t previous_physical_page_address;
 
+	printf("map_logical_to_physical called\n");
 	// (1) see if the given addresses are valid or not
 	if (is_valid_address_range (ptr_ftl_context, logical_page_address) != 1) 
 	{
@@ -610,8 +588,6 @@ int32_t dftl_mapping_get_mapped_physical_page_address (
 	/* obtain the physical page address using the page mapping table */
 	physical_page_address = dftl_get_physical_address(ptr_ftl_context, logical_page_address);
 	if(physical_page_address == -1 || physical_page_address == -2) {
-		if(physical_page_address == -2)
-			printf("dftl_mapping_get_mapped_physical_page_address : No such page in GDT\n");
 		/* the requested logical page is not mapped to any physical page */
 		*ptr_bus = *ptr_chip = *ptr_block = *ptr_page = -1;
 		ret = -1;
@@ -645,37 +621,17 @@ int32_t dftl_mapping_get_free_physical_page_address (
 
 	/* Write Your Own Code */
 	int32_t ret = -1;
-	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
-	struct ftl_page_mapping_context_t* ptr_pg_mapping = (struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	uint32_t physical_page_address;
 
+	printf("dftl_mapping_get_free_physical_page_address called\n");
 	if ((physical_page_address = get_new_free_page_addr (ptr_ftl_context)) == -1) 
 	{
 		/* get the target bus and chip for garbage collection */
-		*ptr_bus = ptr_pg_mapping->ru_bus;
-		*ptr_chip = ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus];
+		*ptr_bus = 0;
+		*ptr_chip = 0;
 		*ptr_block = -1;
 		*ptr_page = -1;
-
-		/* getting a new free page faild, so we move to the previous bus */
-		if (ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus] == 0)
-		{
-			ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus] = ptr_ssd->nr_chips_per_bus - 1;
-		}
-		else
-		{
-			ptr_pg_mapping->ptr_ru_chips[ptr_pg_mapping->ru_bus]--;
-		}
-
-		if (ptr_pg_mapping->ru_bus == 0)
-		{
-			ptr_pg_mapping->ru_bus = ptr_ssd->nr_buses - 1;
-		}
-		else
-		{
-			ptr_pg_mapping->ru_bus--;
-		}
-
+		
 		/* now, it is time to reclaim garbage */
 		ret = -1;
 	}
@@ -699,6 +655,7 @@ int32_t dftl_mapping_map_logical_to_physical (
 	uint32_t page,
 	uint32_t mode)
 {
+	printf("dftl_mapping_map_logical_to_physical called\n");
 	uint32_t physical_page_address = ftl_convert_to_physical_page_address (bus, chip, block, page);
 	if(mode == 0) /* mode is always 0 */
 	return map_logical_to_physical (ptr_ftl_context, logical_page_address, physical_page_address, 0);
