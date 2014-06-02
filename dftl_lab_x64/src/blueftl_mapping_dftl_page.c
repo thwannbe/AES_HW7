@@ -440,6 +440,10 @@ new_entry: /* step 2. modify translation page in buffer */
 	ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
 	if (ptr_translation_block->is_reserved_block != 0 || ptr_translation_block->nr_free_pages == 0)
 	{
+		/* before allocating new translation block, we should check whether the number of translation block is over overprovising blocks */
+		if(ptr_pg_mapping->nr_tblock >= NR_TRANS) {
+			shrink_translation_blocks(ptr_ftl_context, 0, 0); /* bus = chip = 0 */
+		}
 		ptr_translation_block
 			= *(ptr_pg_mapping->ptr_translation_blocks)
 			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
@@ -452,15 +456,14 @@ new_entry: /* step 2. modify translation page in buffer */
 				goto failed;
 			}
 			/* one more try */
-			ptr_translation_block
-			= *(ptr_pg_mapping->ptr_translation_blocks)
-			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
+			ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
 			if (ptr_translation_block == NULL) {
 				printf("write_back_tpage : gc tblock is not working\n");
 				ret = -1;
 				goto failed;
 			}
 		}
+		ptr_pg_mapping->nr_tblock++;
 	}
 	/* now we got translation block which has free page for new translation page */
 	/* make invalid previous translation page, if it exists */
