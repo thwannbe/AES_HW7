@@ -610,6 +610,8 @@ int32_t dftl_mapping_get_mapped_physical_page_address (
 	/* obtain the physical page address using the page mapping table */
 	physical_page_address = dftl_get_physical_address(ptr_ftl_context, logical_page_address);
 	if(physical_page_address == -1 || physical_page_address == -2) {
+		if(physical_page_address == -2)
+			printf("dftl_mapping_get_mapped_physical_page_address : No such page in GDT\n");
 		/* the requested logical page is not mapped to any physical page */
 		*ptr_bus = *ptr_chip = *ptr_block = *ptr_page = -1;
 		ret = -1;

@@ -59,7 +59,6 @@ uint32_t dftl_get_physical_address(
 	/* step 2. if not in CMT, it should make new entry for CMT */
 	/* before that we should read from GTD */
 	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address)) == -1) {
-		printf("dftl_get_physical_address : No such page in GDT\n");
 		return -2;
 	}
 	/* step 2-1. at first we should check CMT is full or not */
