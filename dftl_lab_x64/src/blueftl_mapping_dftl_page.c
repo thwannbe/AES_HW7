@@ -33,6 +33,19 @@ static uint32_t get_mapping_from_gtd(struct ftl_context_t* ptr_ftl_context, stru
 //write back the dirty translation page
 static uint32_t write_back_tpage(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, struct dftl_cached_mapping_entry_t* ptr_evict);
 
+//for debugging
+static void print_curr_dftl_mapping_table(struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head)
+{
+	struct dftl_cached_mapping_entry_t* loop_entry;
+	
+	printf("********* DFTL MAPPING TABLE STATUS **********\n");
+	for(loop_entry = dftl_cached_mapping_table_head->next; loop_entry != dftl_cached_mapping_table_head; loop_entry = loop_entry->next) {
+		printf("logical[%u] physical[%u] dirty[%u]\n", loop_entry->logical_page_address, loop_entry->physical_page_address, loop_entry->dirty);
+	}
+	printf("**********************************************\n");
+}
+
+
 //translate the logical page address into the physical page address
 uint32_t dftl_get_physical_address(
 		struct ftl_context_t* ptr_ftl_context, 
@@ -125,6 +138,8 @@ find_matched:
 		printf("dftl_map_logical_to_physical : insert_mapping for new read entry is failed\n");
 		return -1;
 	}
+	
+	print_curr_dftl_mapping_table(dftl_cached_mapping_table_head);
 
 	return 0;
 }
