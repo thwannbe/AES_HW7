@@ -443,7 +443,6 @@ static uint32_t write_back_tpage(
 	}
 	/* if target translation page addr is not existed, it is new member -> make new translation page */
 	if((physical_translation_page_address = ptr_global_translation_directory[index_global_translation_directory]) == GTD_FREE) {
-		printf("write_back_tpage : current index[%u] is new GTD entry\n", index_global_translation_directory);
 		goto new_entry;
 	}
 	/* this path is old member who already exists in tp */
@@ -495,7 +494,6 @@ new_entry: /* step 2. modify translation page in buffer */
 		}
 	}
 
-	printf("write_back_tpage : tpage buffer modification is done\n");
 	/* step 4. write buffer into translation page in ssd */
 	ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
 	if (ptr_translation_block->is_reserved_block != 0 || ptr_translation_block->nr_free_pages == 0)
@@ -526,7 +524,6 @@ new_entry: /* step 2. modify translation page in buffer */
 		ptr_pg_mapping->nr_tblock++;
 	}
 	/* now we got translation block which has free page for new translation page */
-	print_block_info(ptr_translation_block);
 	/* make invalid previous translation page, if it exists */
 	if(physical_translation_page_address != GTD_FREE) {
 		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status =
