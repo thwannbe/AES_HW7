@@ -243,7 +243,6 @@ static int insert_mapping(
 	/* step 1. check if cmt is full or not */
 	if(isFull(ptr_dftl_context) == 1) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
-		print_curr_dftl_mapping_table(ptr_dftl_context);
 		return -1;
 	}
 	if(!new) { /* old entry reordered */
@@ -398,6 +397,10 @@ static uint32_t get_mapping_from_gtd(
 	/* now get real physical_page_address */
 	if(physical_page_address == GTD_FREE) {
 		printf("get_mapping_from_gtd : read physical addr is free addr\n");
+		printf("curr index = %u, offset = %u\n", index_global_translation_directory, physical_translation_page_offset);
+		print_curr_dftl_gtd(ptr_dftl_context);
+		print_page_buffer_status(ptr_buff);
+
 		physical_page_address = -1;
 	}
 
