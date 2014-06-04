@@ -167,7 +167,6 @@ uint32_t dftl_map_logical_to_physical(
 	/* before that, if CMT is full, need to evict one entry */
 	if(isFull(ptr_dftl_table) == 1) {
 		evict_cmt(ptr_ftl_context, ptr_dftl_table);
-		printf("dftl_map_logical_to_physical : after eviction nr_cached_mapping_table_entries[%u]\n", ptr_dftl_table->nr_cached_mapping_table_entries);
 	}
 
 	if((target_cached_mapping_entry = create_entry(1, logical_page_address, physical_page_address)) == NULL) {
