@@ -240,7 +240,6 @@ struct ftl_context_t* dftl_mapping_create_ftl_context (struct virtual_device_t* 
 	}
 	
 	init_dftl (ptr_ftl_context);
-	
 	/* allocate the memory for the translation blocks */
 	if ((ptr_pg_mapping->ptr_translation_blocks = 
 			(struct flash_block_t**) malloc (sizeof (struct flash_block_t*) * ptr_ssd->nr_buses * ptr_ssd->nr_chips_per_bus)) == NULL) 
@@ -394,8 +393,6 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
 		(struct ftl_page_mapping_context_t *)ptr_ftl_context->ptr_mapping;
 
-	printf("get_new_free_page_addr called\n");
-	
 	ptr_active_block = *(ptr_pg_mapping->ptr_active_blocks); curr_bus = 0; curr_chip = 0;
 
 	if (ptr_active_block->no_bus != curr_bus || ptr_active_block->no_chip != curr_chip)
@@ -466,7 +463,6 @@ int32_t map_logical_to_physical(struct ftl_context_t* ptr_ftl_context, uint32_t 
 	uint32_t curr_bus, curr_chip, curr_block, curr_page;
 	uint32_t previous_physical_page_address;
 
-	printf("map_logical_to_physical called\n");
 	// (1) see if the given addresses are valid or not
 	if (is_valid_address_range (ptr_ftl_context, logical_page_address) != 1) 
 	{
@@ -623,7 +619,6 @@ int32_t dftl_mapping_get_free_physical_page_address (
 	int32_t ret = -1;
 	uint32_t physical_page_address;
 
-	printf("dftl_mapping_get_free_physical_page_address called\n");
 	if ((physical_page_address = get_new_free_page_addr (ptr_ftl_context)) == -1) 
 	{
 		/* get the target bus and chip for garbage collection */
@@ -655,7 +650,6 @@ int32_t dftl_mapping_map_logical_to_physical (
 	uint32_t page,
 	uint32_t mode)
 {
-	printf("dftl_mapping_map_logical_to_physical called\n");
 	uint32_t physical_page_address = ftl_convert_to_physical_page_address (bus, chip, block, page);
 	if(mode == 0) /* mode is always 0 */
 	return map_logical_to_physical (ptr_ftl_context, logical_page_address, physical_page_address, 0);

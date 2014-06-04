@@ -34,17 +34,60 @@ static uint32_t get_mapping_from_gtd(struct ftl_context_t* ptr_ftl_context, stru
 static uint32_t write_back_tpage(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, struct dftl_cached_mapping_entry_t* ptr_evict);
 
 //for debugging
-static void print_curr_dftl_mapping_table(struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head)
+static void print_curr_dftl_mapping_table(struct dftl_context_t* ptr_dftl_context)
 {
+	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_context->ptr_cached_mapping_table_head;
 	struct dftl_cached_mapping_entry_t* loop_entry;
 	
-	printf("********* DFTL MAPPING TABLE STATUS **********\n");
+	printf("*************** DFTL MAPPING TABLE STATUS *******************\n");
+	printf("*	Total Number of Entry : %u\n", ptr_dftl_context->nr_cached_mapping_table_entries);
+	printf("*************************************************************\n");
 	for(loop_entry = dftl_cached_mapping_table_head->next; loop_entry != dftl_cached_mapping_table_head; loop_entry = loop_entry->next) {
-		printf("logical[%u] physical[%u] dirty[%u]\n", loop_entry->logical_page_address, loop_entry->physical_page_address, loop_entry->dirty);
+		printf("\tlogical[%u] physical[%u] dirty[%u]\n", loop_entry->logical_page_address, loop_entry->physical_page_address, loop_entry->dirty);
 	}
-	printf("**********************************************\n");
+	printf("*************************************************************\n");
 }
 
+static void print_curr_dftl_gtd(struct dftl_context_t* ptr_dftl_context)
+{
+	int i;
+
+	printf("******************** DFTL GTD STATUS ************************\n");
+	for(i = 0; i < 128; i++) {
+		printf("GTD INDEX[%d] {range : %d ~ %d} => TPAGE PHY ADDR[%u]\n",
+				i, 512*i, 512*i + 511, ptr_dftl_context->ptr_global_translation_directory[i]);
+	}
+	printf("*************************************************************\n");
+
+}
+
+static void print_page_buffer_status(uint8_t* ptr_buff) {
+	/* assume that this buffer size is uint8_t * FLASH_PAGE_SIZE */
+	int i;
+	uint32_t tmp = 0;
+
+	printf("***************** PAGE BUFFER STATUS ************************\n");
+	for(i=0; i< FLASH_PAGE_SIZE; i++) {
+		tmp = tmp << 8;
+		tmp |= (uint32_t)ptr_buff[i];
+		if(i%4 == 3) {
+			printf("PAGE INDEX[%d .. %d] => [%u]\n", i, i-3, tmp);
+			tmp = 0;
+		}
+	}
+	printf("*************************************************************\n");
+
+}
+
+static void print_block_info(struct flash_block_t* target_block) {
+	printf("***************** SDD BLOCK INFO ****************************\n");
+	printf("*	BUS[%u] CHIP[%u] BLOCK[%u]\n", target_block->no_bus, target_block->no_chip, target_block->no_block);
+	printf("*	nr_valid_pages : %u, nr_invalid_pages : %u, nr_free_pages : %u\n",
+			target_block->nr_valid_pages, target_block->nr_invalid_pages, target_block->nr_free_pages);
+	printf("*	is_reserved_block : %u\n", target_block->is_reserved_block);	
+	printf("*************************************************************\n");
+
+}
 
 //translate the logical page address into the physical page address
 uint32_t dftl_get_physical_address(
@@ -131,15 +174,12 @@ uint32_t dftl_map_logical_to_physical(
 		return -1;
 	}
 	new = 1; /* it is new entry */
-	
 find_matched:
 	/* step 3. insert entry into CMT */
 	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, target_cached_mapping_entry, new)) == -1) {
 		printf("dftl_map_logical_to_physical : insert_mapping for new read entry is failed\n");
 		return -1;
 	}
-	
-	print_curr_dftl_mapping_table(dftl_cached_mapping_table_head);
 
 	return 0;
 }
@@ -299,6 +339,9 @@ static void evict_cmt(
 				ptr_dftl_context->nr_cached_mapping_table_entries--;
 				loop = prev->next;
 			}
+			else {
+				loop = loop->next;
+			}
 		}
 	}
 	perf_dftl_cmt_eviction();
@@ -398,6 +441,7 @@ static uint32_t write_back_tpage(
 	}
 	/* if target translation page addr is not existed, it is new member -> make new translation page */
 	if((physical_translation_page_address = ptr_global_translation_directory[index_global_translation_directory]) == GTD_FREE) {
+		printf("write_back_tpage : current index[%u] is new GTD entry\n", index_global_translation_directory);
 		goto new_entry;
 	}
 	/* this path is old member who already exists in tp */
@@ -429,7 +473,6 @@ new_entry: /* step 2. modify translation page in buffer */
 		ptr_buff[physical_translation_page_offset + 3 - loop] = tmp;
 	}
 	/* now modified evicted entry -> now time to batch eviction */
-	
 	/* step 3. batch eviction */
 	for(loop_entry=ptr_evict->next; loop_entry != ptr_cached_mapping_table_head; loop_entry = loop_entry->next) {
 		if(loop_entry->logical_page_address/512 == index_global_translation_directory && loop_entry->dirty == 1) {
@@ -449,7 +492,8 @@ new_entry: /* step 2. modify translation page in buffer */
 			}
 		}
 	}
-	
+
+	printf("write_back_tpage : tpage buffer modification is done\n");
 	/* step 4. write buffer into translation page in ssd */
 	ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
 	if (ptr_translation_block->is_reserved_block != 0 || ptr_translation_block->nr_free_pages == 0)
@@ -480,6 +524,7 @@ new_entry: /* step 2. modify translation page in buffer */
 		ptr_pg_mapping->nr_tblock++;
 	}
 	/* now we got translation block which has free page for new translation page */
+	print_block_info(ptr_translation_block);
 	/* make invalid previous translation page, if it exists */
 	if(physical_translation_page_address != GTD_FREE) {
 		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status =
@@ -491,7 +536,8 @@ new_entry: /* step 2. modify translation page in buffer */
 	curr_block = ptr_translation_block->no_block;
 	curr_page = ptr_ssd->nr_pages_per_block - ptr_translation_block->nr_free_pages; /*the first free page in block */
 	if(ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status != PAGE_STATUS_FREE) {
-		printf("write_back_tpage : target tpage is not free\n");
+		printf("write_back_tpage : target tpage[bus %u chip %u block %u, page %u] is not free[curr status %u]\n",
+				curr_bus, curr_chip, curr_block, curr_page, ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status);
 		ret = -1;
 		goto failed;
 	}
@@ -499,6 +545,8 @@ new_entry: /* step 2. modify translation page in buffer */
 	ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status = PAGE_STATUS_VALID;
 	/* in case of tpage, no_logical_page_addr = index in gtd */
 	ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].no_logical_page_addr = index_global_translation_directory;
+	ptr_translation_block->nr_valid_pages++;
+	ptr_translation_block->nr_free_pages--;
 	
 	blueftl_user_vdevice_page_write (
 		_ptr_vdevice,
