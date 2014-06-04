@@ -166,6 +166,7 @@ uint32_t dftl_map_logical_to_physical(
 	/* step 2. not find out matched entry -> new entry */
 	/* before that, if CMT is full, need to evict one entry */
 	if(isFull(ptr_dftl_table) == 1) {
+		print_curr_dftl_mapping_table(ptr_dftl_table);
 		evict_cmt(ptr_ftl_context, ptr_dftl_table);
 	}
 
@@ -243,6 +244,7 @@ static int insert_mapping(
 	/* step 1. check if cmt is full or not */
 	if(isFull(ptr_dftl_context) == 1) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
+		print_curr_dftl_mapping_table(ptr_dftl_context);
 		return -1;
 	}
 	if(!new) { /* old entry reordered */

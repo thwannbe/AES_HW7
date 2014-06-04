@@ -400,7 +400,6 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 		printf ("blueftl_mapping_page: the bus number for the active block is not same to the current bus number\n");
 		return -1;
 	}
-	printf("get_new_free_page_addr : ptr_active_block is prepared\n");
 	// (4) see if there are free pages to be used in the block
 	if (ptr_active_block->is_reserved_block != 0||ptr_active_block->nr_free_pages == 0) 
 	{
@@ -425,7 +424,6 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 			return -1;
 		}
 	}
-	printf("get_new_free_page_addr : ptr_active_block check out\n");
 
 	// (5) now we can know that target block and page
 	curr_block = ptr_active_block->no_block;
@@ -433,7 +431,6 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 	
 	// (3) get the physical page address from the layout information
 	curr_physical_page_addr = ftl_convert_to_physical_page_address (curr_bus, curr_chip, curr_block, curr_page);
-	printf("get_new_free_page_addr : curr_physical_page_addr is ready\n");
 	return curr_physical_page_addr;
 }
 
