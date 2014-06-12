@@ -176,13 +176,10 @@ uint32_t dftl_map_logical_to_physical(
 	new = 1; /* it is new entry */
 find_matched:
 	/* step 3. insert entry into CMT */
-	printf("dftl write : before insert_mapping, cached map table entry # = %u\n", ptr_dftl_table->nr_cached_mapping_table_entries);
 	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, target_cached_mapping_entry, new)) == -1) {
 		printf("dftl_map_logical_to_physical : insert_mapping for new read entry is failed\n");
 		return -1;
 	}
-	printf("dftl write : cached map table entry # = %u\n", ptr_dftl_table->nr_cached_mapping_table_entries);
-
 	return 0;
 }
 
@@ -263,8 +260,6 @@ static int insert_mapping(
 
 	if(new)
 		ptr_dftl_context->nr_cached_mapping_table_entries++;
-	
-	printf("insert_mapping : curr cached map table entry # = %u\n", ptr_dftl_context->nr_cached_mapping_table_entries);
 
 	return 0;
 }
@@ -481,10 +476,6 @@ new_entry: /* step 2. modify translation page in buffer */
 		tmp = (uint8_t) tmp_32;
 		ptr_buff[physical_translation_page_offset + 3 - loop] = tmp;
 	}
-	printf("dftl evict : logical [%u] -> physical [%u] : buffer [%x][%x][%x][%x]\n",
-		ptr_evict->logical_page_address, ptr_evict->physical_page_address, ptr_buff[physical_translation_page_offset+3],
-		ptr_buff[physical_translation_page_offset+2], ptr_buff[physical_translation_page_offset+1],
-		ptr_buff[physical_translation_page_offset]);
 
 	/* now modified evicted entry -> now time to batch eviction */
 	/* step 3. batch eviction */
@@ -504,10 +495,6 @@ new_entry: /* step 2. modify translation page in buffer */
 				tmp = (uint8_t) tmp_32;
 				ptr_buff[physical_translation_page_offset + 3 - loop] = tmp;
 			}
-			printf("dftl evict : logical [%u] -> physical [%u] : buffer [%x][%x][%x][%x]\n",
-				loop_entry->logical_page_address, loop_entry->physical_page_address, ptr_buff[physical_translation_page_offset+3],
-				ptr_buff[physical_translation_page_offset+2], ptr_buff[physical_translation_page_offset+1],
-				ptr_buff[physical_translation_page_offset]);
 		}
 	}
 
