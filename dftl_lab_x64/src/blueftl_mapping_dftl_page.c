@@ -243,7 +243,7 @@ static int insert_mapping(
 	struct dftl_cached_mapping_entry_t* origin_last = NULL;
 
 	/* step 1. check if cmt is full or not */
-	if(isFull(ptr_dftl_context) == 1) {
+	if(isFull(ptr_dftl_context) == 1 && new) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
 		return -1;
 	}
@@ -263,6 +263,8 @@ static int insert_mapping(
 
 	if(new)
 		ptr_dftl_context->nr_cached_mapping_table_entries++;
+	
+	printf("insert_mapping : curr cached map table entry # = %u\n", ptr_dftl_context->nr_cached_mapping_table_entries);
 
 	return 0;
 }
