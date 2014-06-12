@@ -180,6 +180,7 @@ find_matched:
 		printf("dftl_map_logical_to_physical : insert_mapping for new read entry is failed\n");
 		return -1;
 	}
+	printf("dftl write : cached map table entry # = %u\n", ptr_dftl_table->nr_cached_mapping_table_entries);
 
 	return 0;
 }
@@ -259,7 +260,8 @@ static int insert_mapping(
 	}
 	origin_last->next = entry;
 
-	ptr_dftl_context->nr_cached_mapping_table_entries++;
+	if(new)
+		ptr_dftl_context->nr_cached_mapping_table_entries++;
 
 	return 0;
 }
@@ -347,6 +349,7 @@ static void evict_cmt(
 			}
 		}
 	}
+	printf("dftl evict : cached map table entry # = %u\n", ptr_dftl_context->nr_cached_mapping_table_entries);
 	perf_dftl_cmt_eviction();
 }
 
