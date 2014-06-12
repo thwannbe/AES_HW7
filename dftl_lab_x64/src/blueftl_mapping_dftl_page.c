@@ -176,6 +176,7 @@ uint32_t dftl_map_logical_to_physical(
 	new = 1; /* it is new entry */
 find_matched:
 	/* step 3. insert entry into CMT */
+	printf("dftl write : before insert_mapping, cached map table entry # = %u\n", ptr_dftl_table->nr_cached_mapping_table_entries);
 	if((insert_mapping(ptr_ftl_context, ptr_dftl_table, target_cached_mapping_entry, new)) == -1) {
 		printf("dftl_map_logical_to_physical : insert_mapping for new read entry is failed\n");
 		return -1;
