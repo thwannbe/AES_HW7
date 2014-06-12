@@ -329,6 +329,9 @@ static void evict_cmt(
 			printf("evict_cmt : Global translation directory modification failed\n");
 			exit(1);
 		}
+		printf("dftl evict : target index [%u] in GTD => physical tpage addr [%u]\n",
+			index, ptr_dftl_context->ptr_global_translation_directory[index]);
+
 		/* batch eviction */
 		for(loop = victim; loop != ptr_dftl_context->ptr_cached_mapping_table_head; ) {
 			struct dftl_cached_mapping_entry_t* prev;
@@ -397,9 +400,6 @@ static uint32_t get_mapping_from_gtd(
 	/* now get real physical_page_address */
 	if(physical_page_address == GTD_FREE) {
 		printf("get_mapping_from_gtd : read physical addr is free addr\n");
-		printf("curr index = %u, offset = %u\n", index_global_translation_directory, physical_translation_page_offset);
-		print_curr_dftl_gtd(ptr_dftl_context);
-		print_page_buffer_status(ptr_buff);
 
 		physical_page_address = -1;
 	}
@@ -471,10 +471,15 @@ new_entry: /* step 2. modify translation page in buffer */
 	for(loop = 0; loop < 4; loop++)	{
 		uint8_t tmp;
 		uint32_t tmp_32;
-		tmp_32 = (modified_physical_page_address >> 8*(3-loop)) & 0xff; /* taken only 1 bit */
+		tmp_32 = (modified_physical_page_address >> 8*(3-loop)) & 0xff; /* taken only 1 byte */
 		tmp = (uint8_t) tmp_32;
 		ptr_buff[physical_translation_page_offset + 3 - loop] = tmp;
 	}
+	printf("dftl evict : logical [%u] -> physical [%u] : buffer [%x][%x][%x][%x]\n",
+		ptr_evict->logical_page_address, ptr_evict->physical_page_address, ptr_buff[physical_translation_page_offset+3],
+		ptr_buff[physical_translation_page_offset+2], ptr_buff[physical_translation_page_offset+1],
+		ptr_buff[physical_translation_page_offset]);
+
 	/* now modified evicted entry -> now time to batch eviction */
 	/* step 3. batch eviction */
 	for(loop_entry=ptr_evict->next; loop_entry != ptr_cached_mapping_table_head; loop_entry = loop_entry->next) {
@@ -493,6 +498,10 @@ new_entry: /* step 2. modify translation page in buffer */
 				tmp = (uint8_t) tmp_32;
 				ptr_buff[physical_translation_page_offset + 3 - loop] = tmp;
 			}
+			printf("dftl evict : logical [%u] -> physical [%u] : buffer [%x][%x][%x][%x]\n",
+				loop_entry->logical_page_address, loop_entry->physical_page_address, ptr_buff[physical_translation_page_offset+3],
+				ptr_buff[physical_translation_page_offset+2], ptr_buff[physical_translation_page_offset+1],
+				ptr_buff[physical_translation_page_offset]);
 		}
 	}
 
