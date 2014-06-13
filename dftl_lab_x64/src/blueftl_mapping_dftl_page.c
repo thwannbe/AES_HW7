@@ -519,8 +519,9 @@ new_entry: /* step 2. modify translation page in buffer */
 		
 		if (ptr_translation_block == NULL) {
 			/* need gc tblock */
-			if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
-				printf("write_back_tpage : gc tblock is failed\n");
+			//if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
+			if(shrink_translation_blocks(ptr_ftl_context, 0, 0) == -1) {
+				printf("write_back_tpage : shrink_translation_blocks is failed\n");
 				ret = -1;
 				goto failed;
 			}
