@@ -34,7 +34,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 		printf("- NULL BLOCK\n");
 	}
 
-	printf("[ ptr_gc_tblocks_blocks ]\n");
+	printf("[ ptr_gc_tblocks ]\n");
 	if((target = ptr_pg_mapping->ptr_gc_tblocks[0]) != NULL) {
 		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
 			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
@@ -45,7 +45,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 		printf("- NULL BLOCK\n");
 	}
 
-	printf("[ ptr_gc_blocks_blocks ]\n");
+	printf("[ ptr_gc_blocks ]\n");
 	if((target = ptr_pg_mapping->ptr_gc_blocks[0]) != NULL) {
 		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
 			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
@@ -309,7 +309,7 @@ int32_t gc_dftl_trigger_gc (
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 
 	//for debuging
-	printf("gc_dftl_trigger_gc : before gc\n");
+	printf("gc_dftl_trigger_gc : before gc");
 	print_reserved_block_status(ptr_pg_mapping);
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_ssd, gc_target_bus, gc_target_chip)) == NULL) {
@@ -335,6 +335,9 @@ int32_t gc_dftl_trigger_gc (
 			}
 		}
 	}
+
+	//for debugging
+	printf("\tvictim type is %s\n", (victim_type) ? "TBLOCK" : "DBLOCK");
 
 	/* step 2. prepare gc reserved block */
 	if(victim_type) {
