@@ -102,6 +102,8 @@ uint32_t dftl_get_physical_address(
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = NULL;
 	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
 	uint32_t physical_page_address;
+	
+	printf("dftl_get_physical_address called : LPA [%u]\n", logical_page_address);
 
 	dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 	/* step 1. search in CMT ; hit -> end, miss -> next step */
@@ -132,8 +134,6 @@ uint32_t dftl_get_physical_address(
 		printf("dftl_get_physical_address : insert_mapping for new read entry is failed\n");
 		return -1;
 	}
-	
-	printf("dftl_get_physical_address called : LPA [%u] PPA [%u]\n", logical_page_address, physical_page_address);
 
 	return physical_page_address;
 }
