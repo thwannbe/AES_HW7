@@ -87,10 +87,6 @@ int32_t shrink_translation_blocks (
 	 *	copy into buff, and erase all
 	 */
 
-	//for debugging
-	printf("shrink_translation_blocks : before shrink\n");
-	print_reserved_block_status(ptr_pg_mapping);
-
 	buff_stack = entire_tpage_buff;
 	for(loop = 0; loop < 128; loop++) {
 		uint32_t cur_tpage_paddr = ptr_dftl_table->ptr_global_translation_directory[loop];
@@ -229,10 +225,6 @@ int32_t shrink_translation_blocks (
 	}
 	
 failed:
-	//for debugging
-	printf("shrink_translation_blocks : after shrink\n");
-	print_reserved_block_status(ptr_pg_mapping);
-
 	return ret;
 	
 }
@@ -252,12 +244,9 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 	uint32_t nr_cur_invalid_pages;
 	uint32_t loop_block;
 	
-	//for debugging
-	printf("gc_dftl_select_victim_greedy : entire block status\n");
 	for(loop_block = 0; loop_block < NR_BLOCKS_PER_CHIP; loop_block++) {
 		nr_cur_invalid_pages = 
 			ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
-		print_block_info(&ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
 		if(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].is_reserved_block == 0) {	
 			if(nr_cur_invalid_pages == ptr_ssd->nr_pages_per_block) {
 				ptr_victim_block =
@@ -308,9 +297,6 @@ int32_t gc_dftl_trigger_gc (
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 
-	//for debuging
-	printf("gc_dftl_trigger_gc : before gc\n");
-	print_reserved_block_status(ptr_pg_mapping);
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_ssd, gc_target_bus, gc_target_chip)) == NULL) {
 		printf("gc_dftl_trigger_gc : select victim block is failed\n");
@@ -335,9 +321,6 @@ int32_t gc_dftl_trigger_gc (
 			}
 		}
 	}
-
-	//for debugging
-	printf("victim type is %s\n", (victim_type) ? "TBLOCK" : "DBLOCK");
 
 	/* step 2. prepare gc reserved block */
 	if(!victim_type) {
@@ -554,9 +537,5 @@ int32_t gc_dftl_trigger_gc (
 		*(ptr_pg_mapping->ptr_active_blocks) = ptr_gc_block; /* now new active block for DBLOCK is ptr_gc_block */
 
 failed:
-	//for debuging
-	printf("gc_dftl_trigger_gc : after gc\n");
-	print_reserved_block_status(ptr_pg_mapping);
-
 	return ret;
 }
