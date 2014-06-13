@@ -373,6 +373,7 @@ int32_t gc_dftl_trigger_gc (
 				uint32_t* ptr_global_translation_directory = ptr_dftl_table->ptr_global_translation_directory;
 				uint32_t index_global_translation_directory;
 				uint32_t physical_translation_page_address;
+				uint32_t physical_translation_page_offset;
 				struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
 				uint32_t modified_physical_page_address;
 
