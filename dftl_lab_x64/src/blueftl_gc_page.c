@@ -518,7 +518,7 @@ int32_t gc_dftl_trigger_gc (
 	else
 		*(ptr_pg_mapping->ptr_gc_blocks) = ptr_victim_block;
 
-	ptr_gc_block->is_reserved_block = 0;
+	ptr_gc_block->is_reserved_block = 1;
 
 	if(gc_type) /* gc for new TBLOCK */
 		*(ptr_pg_mapping->ptr_translation_blocks) = ptr_gc_block; /* now new translation block for TBLOCK is ptr_gc_block */
