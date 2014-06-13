@@ -405,7 +405,7 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 		return -1;
 	}
 	// (4) see if there are free pages to be used in the block
-	if (ptr_active_block->is_reserved_block != 0||ptr_active_block->nr_free_pages == 0) 
+	if (ptr_active_block->is_reserved_block == 0||ptr_active_block->nr_free_pages == 0) 
 	{
 		// there is no free page in the block, and therefore it it necessary to allocate a new log block for this bus
 		ptr_active_block 
@@ -420,6 +420,7 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 				printf ("blueftl_mapping_page: bus number or free block number is incorrect (%d %d)\n", ptr_active_block->no_bus, ptr_active_block->nr_free_pages);
 				return -1;
 			}
+			ptr_active_block->is_reserved_block = 1;
 		} 
 		else 
 		{

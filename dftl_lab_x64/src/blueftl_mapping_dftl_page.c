@@ -499,7 +499,7 @@ new_entry: /* step 2. modify translation page in buffer */
 
 	/* step 4. write buffer into translation page in ssd */
 	ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
-	if (ptr_translation_block->is_reserved_block != 0 || ptr_translation_block->nr_free_pages == 0)
+	if (ptr_translation_block->is_reserved_block == 0 || ptr_translation_block->nr_free_pages == 0)
 	{
 		/* before allocating new translation block, we should check whether the number of translation block is over overprovising blocks */
 		if(ptr_pg_mapping->nr_tblock >= NR_TRANS) {
@@ -524,6 +524,7 @@ new_entry: /* step 2. modify translation page in buffer */
 				goto failed;
 			}
 		}
+		ptr_translation_block->is_reserved_block = 1;
 		ptr_pg_mapping->nr_tblock++;
 	}
 	/* now we got translation block which has free page for new translation page */

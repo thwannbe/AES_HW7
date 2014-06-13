@@ -233,18 +233,18 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 	for(loop_block = 0; loop_block < ptr_ssd->nr_blocks_per_chip; loop_block++) {
 		nr_cur_invalid_pages = 
 			ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
-		
-		if(nr_cur_invalid_pages == ptr_ssd->nr_pages_per_block) {
-			ptr_victim_block =
-				&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
-			return ptr_victim_block;
-		}
+		if(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].is_reserved_block == 0) {	
+			if(nr_cur_invalid_pages == ptr_ssd->nr_pages_per_block) {
+				ptr_victim_block =
+					&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
+				return ptr_victim_block;
+			}
 
-		if(nr_max_invalid_pages < nr_cur_invalid_pages)
-		{
-			nr_max_invalid_pages = nr_cur_invalid_pages;
-			ptr_victim_block =
-				&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
+			if(nr_max_invalid_pages < nr_cur_invalid_pages) {
+				nr_max_invalid_pages = nr_cur_invalid_pages;
+				ptr_victim_block =
+					&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
+			}
 		}
 	}
 
