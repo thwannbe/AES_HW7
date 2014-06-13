@@ -92,16 +92,20 @@ int32_t shrink_translation_blocks (
 	 */
 
 	printf("shrink_translation_blocks called\n");
+	/* full GTD check */
+	for(loop = 0; loop < 128; loop++) {
+		if(ptr_dftl_table->ptr_global_translation_directory[loop] == GTD_FREE) {
+			ret = -2;
+			goto failed;
+		}
+	}
+
 	buff_stack = entire_tpage_buff;
 	for(loop = 0; loop < 128; loop++) {
 		uint32_t cur_tpage_paddr = ptr_dftl_table->ptr_global_translation_directory[loop];
 		uint32_t tp_bus, tp_chip, tp_block, tp_page;
 		struct flash_block_t* ptr_cur_tblock = NULL;
 		struct flash_page_t* ptr_cur_tpage = NULL;
-		if(cur_tpage_paddr == GTD_FREE) {
-			ret = -2;
-			goto failed;
-		}
 		ftl_convert_to_ssd_layout(cur_tpage_paddr, &tp_bus, &tp_chip, &tp_block, &tp_page);
 		ptr_cur_tblock = &(ptr_ssd->list_buses[tp_bus].list_chips[tp_chip].list_blocks[tp_block]);
 		ptr_cur_tpage = &(ptr_ssd->list_buses[tp_bus].list_chips[tp_chip].list_blocks[tp_block].list_pages[tp_page]);
