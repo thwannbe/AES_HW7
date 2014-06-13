@@ -87,6 +87,10 @@ int32_t shrink_translation_blocks (
 	 *	copy into buff, and erase all
 	 */
 
+	//for debugging
+	printf("shrink_translation_blocks : before shrink\n");
+	print_reserved_block_status(ptr_pg_mapping);
+
 	buff_stack = entire_tpage_buff;
 	for(loop = 0; loop < 128; loop++) {
 		uint32_t cur_tpage_paddr = ptr_dftl_table->ptr_global_translation_directory[loop];
@@ -225,6 +229,10 @@ int32_t shrink_translation_blocks (
 	}
 	
 failed:
+	//for debugging
+	printf("shrink_translation_blocks : after shrink\n");
+	print_reserved_block_status(ptr_pg_mapping);
+
 	return ret;
 	
 }
