@@ -13,36 +13,48 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 	struct flash_block_t *target = NULL;
 	printf("****************** RESERVED BLOCK STATUS ********************\n");
 	printf("[ ptr_translation_blocks ]\n");
-	target = ptr_pg_mapping->ptr_translation_blocks[0];
-	printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
-		target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
-		target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
-		NR_PAGES_PER_BLOCK);
-	printf("- is_reserved_block [%u]\n", target->is_reserved_block); 
+	if((target = ptr_pg_mapping->ptr_translation_blocks[0]) != NULL) {
+		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
+			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
+			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
+			NR_PAGES_PER_BLOCK);
+		printf("- is_reserved_block [%u]\n", target->is_reserved_block);
+	} else {
+		printf("- NULL BLOCK\n");
+	}
 
 	printf("[ ptr_active_blocks ]\n");
-	target = ptr_pg_mapping->ptr_active_blocks[0];
-	printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
-		target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
-		target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
-		NR_PAGES_PER_BLOCK);
-	printf("- is_reserved_block [%u]\n", target->is_reserved_block); 
+	if((target = ptr_pg_mapping->ptr_active_blocks[0]) != NULL) {
+		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
+			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
+			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
+			NR_PAGES_PER_BLOCK);
+		printf("- is_reserved_block [%u]\n", target->is_reserved_block);
+	} else {
+		printf("- NULL BLOCK\n");
+	}
 
 	printf("[ ptr_gc_tblocks_blocks ]\n");
-	target = ptr_pg_mapping->ptr_gc_tblocks[0];
-	printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
-		target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
-		target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
-		NR_PAGES_PER_BLOCK);
-	printf("- is_reserved_block [%u]\n", target->is_reserved_block); 
+	if((target = ptr_pg_mapping->ptr_gc_tblocks[0]) != NULL) {
+		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
+			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
+			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
+			NR_PAGES_PER_BLOCK);
+		printf("- is_reserved_block [%u]\n", target->is_reserved_block); 
+	} else {
+		printf("- NULL BLOCK\n");
+	}
 
 	printf("[ ptr_gc_blocks_blocks ]\n");
-	target = ptr_pg_mapping->ptr_gc_blocks[0];
-	printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
-		target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
-		target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
-		NR_PAGES_PER_BLOCK);
-	printf("- is_reserved_block [%u]\n", target->is_reserved_block); 
+	if((target = ptr_pg_mapping->ptr_gc_blocks[0]) != NULL) {
+		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
+			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
+			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
+			NR_PAGES_PER_BLOCK);
+		printf("- is_reserved_block [%u]\n", target->is_reserved_block); 
+	} else {
+		printf("- NULL BLOCK\n");
+	}
 	printf("*************************************************************\n");
 }
 
