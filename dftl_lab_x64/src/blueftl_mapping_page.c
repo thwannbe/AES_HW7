@@ -295,9 +295,6 @@ struct ftl_context_t* dftl_mapping_create_ftl_context (struct virtual_device_t* 
 	/* set virtual device */
 	ptr_ftl_context->ptr_vdevice = ptr_vdevice;
 
-	//for debug
-	print_reserved_block_status(ptr_pg_mapping);
-
 	return ptr_ftl_context;
 
 error_alloc_ru_blocks:
@@ -425,7 +422,7 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 		} 
 		else 
 		{
-			printf("need gc for active block\n");
+			//printf("need gc for active block\n");
 			// oops! there is no free block in the bus. Hence we need a garbage collection.
 			return -1;
 		}

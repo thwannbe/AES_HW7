@@ -340,6 +340,7 @@ int32_t gc_dftl_trigger_gc (
 	/* check error cases */
 	if(ptr_gc_block->nr_free_pages != ptr_ssd->nr_pages_per_block || ptr_gc_block->is_reserved_block != 1) {
 		printf("gc_dftl_trigger_gc : gc block is not appropriate\n");
+		print_reserved_block_status(ptr_pg_mapping);
 		ret = -1;
 		goto failed;
 	}
