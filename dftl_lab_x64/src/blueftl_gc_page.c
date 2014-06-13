@@ -309,7 +309,7 @@ int32_t gc_dftl_trigger_gc (
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 
 	//for debuging
-	printf("gc_dftl_trigger_gc : before gc");
+	printf("gc_dftl_trigger_gc : before gc\n");
 	print_reserved_block_status(ptr_pg_mapping);
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_ssd, gc_target_bus, gc_target_chip)) == NULL) {
@@ -337,10 +337,10 @@ int32_t gc_dftl_trigger_gc (
 	}
 
 	//for debugging
-	printf("\tvictim type is %s\n", (victim_type) ? "TBLOCK" : "DBLOCK");
+	printf("victim type is %s\n", (victim_type) ? "TBLOCK" : "DBLOCK");
 
 	/* step 2. prepare gc reserved block */
-	if(victim_type) {
+	if(!victim_type) {
 		if((ptr_gc_block = *(ptr_pg_mapping->ptr_gc_blocks)) == NULL) {
 			printf("gc_dftl_trigger_gc : there is no reserved gc block\n");
 			ret = -1;
