@@ -32,6 +32,10 @@ uint32_t dftl_modify_gtd(struct ftl_context_t* ptr_ftl_context, struct dftl_cont
 uint32_t update_cmt(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address,
 		int flag);
 
+//insert the mapping into the CMT
+int insert_mapping(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, struct dftl_cached_mapping_entry_t* entry, int new);
+
+
 //for debugging
 void print_curr_dftl_mapping_table(struct dftl_context_t* ptr_dftl_context);
 void print_curr_dftl_gtd(struct dftl_context_t* ptr_dftl_context);
