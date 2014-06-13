@@ -75,7 +75,7 @@ int32_t shrink_translation_blocks (
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 
-	unsigned char *entire_tpage_buff = (unsigned char*) malloc(2 * ptr_ssd->nr_pages_per_block * FLASH_PAGE_SIZE); /* entire translation page info */
+	unsigned char *entire_tpage_buff = (unsigned char*) malloc(2 * NR_PAGES_PER_BLOCK * FLASH_PAGE_SIZE); /* entire translation page info */
 	unsigned char *buff_stack = NULL;
 
 	struct flash_block_t* new_tblock = NULL;
@@ -143,26 +143,26 @@ int32_t shrink_translation_blocks (
 		}
 		/* error checking */
 		if((ptr_cur_tblock->nr_valid_pages + ptr_cur_tblock->nr_invalid_pages + ptr_cur_tblock->nr_free_pages) !=
-			ptr_ssd->nr_pages_per_block) {
+			NR_PAGES_PER_BLOCK) {
 			printf("shrink_translation_blocks : this translation block[%u] has wrong nr block info\n", tp_block);
 			ret = -1;
 			goto failed;
 		}
 		/* if it is not free yet, make it free */
-		if(ptr_cur_tblock->nr_invalid_pages == ptr_ssd->nr_pages_per_block) {
+		if(ptr_cur_tblock->nr_invalid_pages == NR_PAGES_PER_BLOCK) {
 			blueftl_user_vdevice_block_erase(
 				_ptr_vdevice,
 				tp_bus, tp_chip, tp_block);
 			perf_inc_tblock_erasures();
 
-			ptr_cur_tblock->nr_free_pages = ptr_ssd->nr_pages_per_block;
+			ptr_cur_tblock->nr_free_pages = NR_PAGES_PER_BLOCK;
 			ptr_cur_tblock->nr_valid_pages = 0;
 			ptr_cur_tblock->nr_invalid_pages = 0;
 			ptr_cur_tblock->nr_erase_cnt++;
 			ptr_cur_tblock->last_modified_time = 0;
 		}
 
-		for(loop_page = 0; loop_page < ptr_ssd->nr_pages_per_block; loop_page++) {
+		for(loop_page = 0; loop_page < NR_PAGES_PER_BLOCK; loop_page++) {
 			ptr_cur_tblock->list_pages[loop_page].no_logical_page_addr = -1;
 			ptr_cur_tblock->list_pages[loop_page].page_status = PAGE_STATUS_FREE;
 		}
@@ -248,7 +248,7 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 		nr_cur_invalid_pages = 
 			ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
 		if(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].is_reserved_block == 0) {	
-			if(nr_cur_invalid_pages == ptr_ssd->nr_pages_per_block) {
+			if(nr_cur_invalid_pages == NR_PAGES_PER_BLOCK) {
 				ptr_victim_block =
 					&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
 				return ptr_victim_block;
@@ -338,7 +338,7 @@ int32_t gc_dftl_trigger_gc (
 		}
 	}
 	/* check error cases */
-	if(ptr_gc_block->nr_free_pages != ptr_ssd->nr_pages_per_block || ptr_gc_block->is_reserved_block != 1) {
+	if(ptr_gc_block->nr_free_pages != NR_PAGES_PER_BLOCK || ptr_gc_block->is_reserved_block != 1) {
 		printf("gc_dftl_trigger_gc : gc block is not appropriate\n");
 		print_reserved_block_status(ptr_pg_mapping);
 		ret = -1;
@@ -349,7 +349,7 @@ int32_t gc_dftl_trigger_gc (
 	/* step 3. copy flash pages from the victim block to the gc block */
 	if(!victim_type) { /* DBLOCK */
 		if(ptr_victim_block->nr_valid_pages >0){
-			for(loop_page_victim = 0; loop_page_victim < ptr_ssd->nr_pages_per_block; loop_page_victim++) {
+			for(loop_page_victim = 0; loop_page_victim < NR_PAGES_PER_BLOCK; loop_page_victim++) {
 				struct flash_page_t* ptr_cur_page = &(ptr_victim_block->list_pages[loop_page_victim]);
 				if(ptr_cur_page->page_status == PAGE_STATUS_VALID) {
 					logical_page_address = ptr_cur_page->no_logical_page_addr;
@@ -421,7 +421,7 @@ int32_t gc_dftl_trigger_gc (
 	}
 	else { /* TBLOCK */
 		if(ptr_victim_block->nr_valid_pages >0){
-			for(loop_page_victim = 0; loop_page_victim < ptr_ssd->nr_pages_per_block; loop_page_victim++) {
+			for(loop_page_victim = 0; loop_page_victim < NR_PAGES_PER_BLOCK; loop_page_victim++) {
 				struct flash_page_t* ptr_cur_page = &(ptr_victim_block->list_pages[loop_page_victim]);
 				if(ptr_cur_page->page_status == PAGE_STATUS_VALID) {
 					logical_page_address = ptr_cur_page->no_logical_page_addr;
@@ -465,10 +465,10 @@ int32_t gc_dftl_trigger_gc (
 						goto failed;
 					}
 					
-					if ((ptr_victim_block->nr_free_pages + ptr_victim_block->nr_valid_pages + ptr_victim_block->nr_invalid_pages) != ptr_ssd->nr_pages_per_block) {
+					if ((ptr_victim_block->nr_free_pages + ptr_victim_block->nr_valid_pages + ptr_victim_block->nr_invalid_pages) != NR_PAGES_PER_BLOCK) {
 						printf("gc_dftl_trigger_gc : free:%u + valid:%u + invalid:%u is not %u\n",
 							ptr_victim_block->nr_free_pages, ptr_victim_block->nr_valid_pages,
-							ptr_victim_block->nr_invalid_pages, ptr_ssd->nr_pages_per_block);
+							ptr_victim_block->nr_invalid_pages, NR_PAGES_PER_BLOCK);
 						ret = -1;
 						goto failed;
 					}
@@ -490,10 +490,10 @@ int32_t gc_dftl_trigger_gc (
 						goto failed;
 					}
 					
-					if ((ptr_gc_block->nr_free_pages + ptr_gc_block->nr_valid_pages + ptr_gc_block->nr_invalid_pages) != ptr_ssd->nr_pages_per_block) {
+					if ((ptr_gc_block->nr_free_pages + ptr_gc_block->nr_valid_pages + ptr_gc_block->nr_invalid_pages) != NR_PAGES_PER_BLOCK) {
 						printf("gc_dftl_trigger_gc : free:%u + valid:%u + invalid:%u is not %u\n",
 							ptr_gc_block->nr_free_pages, ptr_gc_block->nr_valid_pages,
-							ptr_gc_block->nr_invalid_pages, ptr_ssd->nr_pages_per_block);
+							ptr_gc_block->nr_invalid_pages, NR_PAGES_PER_BLOCK);
 						ret = -1;
 						goto failed;
 					}
@@ -513,14 +513,14 @@ int32_t gc_dftl_trigger_gc (
 	else
 		perf_gc_inc_blk_erasures();
 
-	ptr_victim_block->nr_free_pages = ptr_ssd->nr_pages_per_block;
+	ptr_victim_block->nr_free_pages = NR_PAGES_PER_BLOCK;
 	ptr_victim_block->nr_valid_pages = 0;
 	ptr_victim_block->nr_invalid_pages = 0;
 	ptr_victim_block->nr_erase_cnt++;
 	ptr_victim_block->last_modified_time = 0;
 	ptr_victim_block->is_reserved_block = 1; /* it becomes new gc reserved block */
 
-	for(loop_page = 0; loop_page < ptr_ssd->nr_pages_per_block; loop_page++) {
+	for(loop_page = 0; loop_page < NR_PAGES_PER_BLOCK; loop_page++) {
 		ptr_victim_block->list_pages[loop_page].no_logical_page_addr = -1;
 		ptr_victim_block->list_pages[loop_page].page_status = PAGE_STATUS_FREE;
 	}
@@ -536,7 +536,9 @@ int32_t gc_dftl_trigger_gc (
 		*(ptr_pg_mapping->ptr_translation_blocks) = ptr_gc_block; /* now new translation block for TBLOCK is ptr_gc_block */
 	else
 		*(ptr_pg_mapping->ptr_active_blocks) = ptr_gc_block; /* now new active block for DBLOCK is ptr_gc_block */
-
+	
+	//for debug
+	print_reserved_block_status(ptr_pg_mapping);
 failed:
 	return ret;
 }
