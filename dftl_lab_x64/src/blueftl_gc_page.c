@@ -9,7 +9,7 @@
 
 unsigned char gc_buff[FLASH_PAGE_SIZE];
 
-static void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mapping) {
+void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mapping) {
 	struct flash_block_t *target = NULL;
 	printf("****************** RESERVED BLOCK STATUS ********************\n");
 	printf("[ ptr_translation_blocks ]\n");

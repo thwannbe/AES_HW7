@@ -6,6 +6,8 @@
 #define DBLOCK 0
 #define TBLOCK 1
 
+void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mapping);
+
 int32_t shrink_translation_blocks (
 	struct ftl_context_t* ptr_ftl_context,
 	int32_t gc_target_bus,

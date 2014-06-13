@@ -293,6 +293,8 @@ struct ftl_context_t* dftl_mapping_create_ftl_context (struct virtual_device_t* 
 	/* set virtual device */
 	ptr_ftl_context->ptr_vdevice = ptr_vdevice;
 
+	//for debug
+	print_reserved_block_status(ptr_pg_mapping);
 
 	return ptr_ftl_context;
 
