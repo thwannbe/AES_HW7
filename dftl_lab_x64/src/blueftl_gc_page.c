@@ -254,7 +254,7 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 	
 	//for debugging
 	printf("gc_dftl_select_victim_greedy : entire block status\n");
-	for(loop_block = 0; loop_block < ptr_ssd->nr_blocks_per_chip; loop_block++) {
+	for(loop_block = 0; loop_block < NR_BLOCKS_PER_CHIP; loop_block++) {
 		nr_cur_invalid_pages = 
 			ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
 		print_block_info(&ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
