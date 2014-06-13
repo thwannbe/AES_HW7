@@ -14,6 +14,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 	printf("****************** RESERVED BLOCK STATUS ********************\n");
 	printf("[ ptr_translation_blocks ]\n");
 	if((target = ptr_pg_mapping->ptr_translation_blocks[0]) != NULL) {
+		printf("- bus [%u] chip [%u] block[%u]\n", target->no_bus, target->no_chip, target->no_block);
 		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
 			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
 			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
@@ -25,6 +26,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 
 	printf("[ ptr_active_blocks ]\n");
 	if((target = ptr_pg_mapping->ptr_active_blocks[0]) != NULL) {
+		printf("- bus [%u] chip [%u] block[%u]\n", target->no_bus, target->no_chip, target->no_block);
 		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
 			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
 			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
@@ -36,6 +38,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 
 	printf("[ ptr_gc_tblocks ]\n");
 	if((target = ptr_pg_mapping->ptr_gc_tblocks[0]) != NULL) {
+		printf("- bus [%u] chip [%u] block[%u]\n", target->no_bus, target->no_chip, target->no_block);
 		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
 			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
 			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
@@ -47,6 +50,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 
 	printf("[ ptr_gc_blocks ]\n");
 	if((target = ptr_pg_mapping->ptr_gc_blocks[0]) != NULL) {
+		printf("- bus [%u] chip [%u] block[%u]\n", target->no_bus, target->no_chip, target->no_block);
 		printf("- free [%u] - valid [%u] - invalid [%u] - total [%u/%u]\n",
 			target->nr_free_pages, target->nr_valid_pages, target->nr_invalid_pages,
 			target->nr_free_pages + target->nr_valid_pages + target->nr_invalid_pages,
