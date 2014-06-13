@@ -86,6 +86,7 @@ uint32_t init_translation_blocks(struct ftl_context_t* ptr_ftl_context)
 			if ((ptr_erase_block = ssdmgmt_get_free_block (ptr_ssd, loop_bus, loop_chip))) 
 			{
 				*(ptr_pg_mapping->ptr_translation_blocks + (loop_bus * ptr_ssd->nr_chips_per_bus + loop_chip)) = ptr_erase_block;
+				ptr_erase_block->is_reserved_block = 0;
 			} 
 			else 
 			{
@@ -171,6 +172,7 @@ uint32_t init_active_blocks(struct ftl_context_t* ptr_ftl_context)
 			if ((ptr_erase_block = ssdmgmt_get_free_block (ptr_ssd, loop_bus, loop_chip))) 
 			{
 				*(ptr_pg_mapping->ptr_active_blocks + (loop_bus * ptr_ssd->nr_chips_per_bus + loop_chip)) = ptr_erase_block;
+				ptr_erase_block->is_reserved_block = 0;
 			} 
 			else 
 			{
