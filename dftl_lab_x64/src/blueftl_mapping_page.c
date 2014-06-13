@@ -408,6 +408,7 @@ uint32_t get_new_free_page_addr(struct ftl_context_t* ptr_ftl_context)
 	if (ptr_active_block->is_reserved_block == 0||ptr_active_block->nr_free_pages == 0) 
 	{
 		// there is no free page in the block, and therefore it it necessary to allocate a new log block for this bus
+		ptr_active_block->is_reserved_block = 0; // old active block is not reserved any more
 		ptr_active_block 
 			= *(ptr_pg_mapping->ptr_active_blocks + (curr_bus * ptr_ssd->nr_chips_per_bus + curr_chip)) 
 			= ssdmgmt_get_free_block(ptr_ssd, curr_bus, curr_chip);

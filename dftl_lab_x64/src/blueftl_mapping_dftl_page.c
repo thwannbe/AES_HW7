@@ -505,6 +505,7 @@ new_entry: /* step 2. modify translation page in buffer */
 		if(ptr_pg_mapping->nr_tblock >= NR_TRANS) {
 			shrink_translation_blocks(ptr_ftl_context, 0, 0); /* bus = chip = 0 */
 		}
+		ptr_translation_block->is_reserved_block = 0; // old translation_block is not reserved block any more
 		ptr_translation_block
 			= *(ptr_pg_mapping->ptr_translation_blocks)
 			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */

@@ -174,6 +174,7 @@ int32_t shrink_translation_blocks (
 		ret = -1;
 		goto failed;
 	}
+	new_tblock->is_reserved_block = 0; // prepare this block is not reserved one
 	buff_stack = entire_tpage_buff; loop_page = 0;/* loop_page reuse */
 	for(loop = 0; loop < 128; loop++) {
 		uint32_t tp_bus, tp_chip, tp_block, tp_page;
@@ -218,6 +219,7 @@ int32_t shrink_translation_blocks (
 				ret = -1;
 				goto failed;
 			}
+			new_tblock->is_reserved_block = 1; // prepare this block is reserved one, because it is second tblock
 			loop_page = 0;
 		}		
 	}
