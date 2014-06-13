@@ -34,7 +34,7 @@ static uint32_t get_mapping_from_gtd(struct ftl_context_t* ptr_ftl_context, stru
 static uint32_t write_back_tpage(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, struct dftl_cached_mapping_entry_t* ptr_evict);
 
 //for debugging
-static void print_curr_dftl_mapping_table(struct dftl_context_t* ptr_dftl_context)
+void print_curr_dftl_mapping_table(struct dftl_context_t* ptr_dftl_context)
 {
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_context->ptr_cached_mapping_table_head;
 	struct dftl_cached_mapping_entry_t* loop_entry;
@@ -48,7 +48,7 @@ static void print_curr_dftl_mapping_table(struct dftl_context_t* ptr_dftl_contex
 	printf("*************************************************************\n");
 }
 
-static void print_curr_dftl_gtd(struct dftl_context_t* ptr_dftl_context)
+void print_curr_dftl_gtd(struct dftl_context_t* ptr_dftl_context)
 {
 	int i;
 
@@ -61,7 +61,7 @@ static void print_curr_dftl_gtd(struct dftl_context_t* ptr_dftl_context)
 
 }
 
-static void print_page_buffer_status(uint8_t* ptr_buff) {
+void print_page_buffer_status(uint8_t* ptr_buff) {
 	/* assume that this buffer size is uint8_t * FLASH_PAGE_SIZE */
 	int i;
 	uint32_t tmp = 0;
@@ -79,7 +79,7 @@ static void print_page_buffer_status(uint8_t* ptr_buff) {
 
 }
 
-static void print_block_info(struct flash_block_t* target_block) {
+void print_block_info(struct flash_block_t* target_block) {
 	printf("***************** SDD BLOCK INFO ****************************\n");
 	printf("*	BUS[%u] CHIP[%u] BLOCK[%u]\n", target_block->no_bus, target_block->no_chip, target_block->no_block);
 	printf("*	nr_valid_pages : %u, nr_invalid_pages : %u, nr_free_pages : %u\n",

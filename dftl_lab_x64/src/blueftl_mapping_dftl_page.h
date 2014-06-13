@@ -31,4 +31,11 @@ uint32_t dftl_modify_gtd(struct ftl_context_t* ptr_ftl_context, struct dftl_cont
 //update CMT
 uint32_t update_cmt(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t physical_page_address,
 		int flag);
+
+//for debugging
+void print_curr_dftl_mapping_table(struct dftl_context_t* ptr_dftl_context);
+void print_curr_dftl_gtd(struct dftl_context_t* ptr_dftl_context);
+void print_page_buffer_status(uint8_t* ptr_buff);
+void print_block_info(struct flash_block_t* target_block);
+
 #endif
