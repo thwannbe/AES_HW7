@@ -66,7 +66,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 int32_t shrink_translation_blocks (
 	struct ftl_context_t* ptr_ftl_context,
 	int32_t gc_target_bus,
-	int32_t gc_target_chip)
+	int32_t gc_target_chip) // return value : [-1] : error , [-2] : not full
 {
 	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
 	
@@ -99,8 +99,7 @@ int32_t shrink_translation_blocks (
 		struct flash_block_t* ptr_cur_tblock = NULL;
 		struct flash_page_t* ptr_cur_tpage = NULL;
 		if(cur_tpage_paddr == GTD_FREE) {
-			printf("shrink_translation_blocks : GTD is not full\n");
-			ret = -1;
+			ret = -2;
 			goto failed;
 		}
 		ftl_convert_to_ssd_layout(cur_tpage_paddr, &tp_bus, &tp_chip, &tp_block, &tp_page);

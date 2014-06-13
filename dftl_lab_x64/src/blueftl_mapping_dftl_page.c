@@ -519,11 +519,12 @@ new_entry: /* step 2. modify translation page in buffer */
 		
 		if (ptr_translation_block == NULL) {
 			/* need gc tblock */
-			//if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
-			if(shrink_translation_blocks(ptr_ftl_context, 0, 0) == -1) {
-				printf("write_back_tpage : shrink_translation_blocks is failed\n");
-				ret = -1;
-				goto failed;
+			if(shrink_translation_blocks(ptr_ftl_context, 0, 0) == -2) { // GDT NOT FULL
+				if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
+					printf("write_back_tpage : gc_dftl_trigger_gc is failed\n");
+					ret = -1;
+					goto failed;
+				}
 			}
 			/* one more try */
 			ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
