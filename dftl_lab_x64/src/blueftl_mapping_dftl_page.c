@@ -28,7 +28,7 @@ static uint32_t isFull(struct dftl_context_t* ptr_dftl_context);
 static void evict_cmt(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context);
 
 //get a physical page address from the translation page by using the GTD
-static uint32_t get_mapping_from_gtd(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address);
+static uint32_t get_mapping_from_gtd(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, uint32_t logical_page_address, uint32_t read_write);
 
 //write back the dirty translation page
 static uint32_t write_back_tpage(struct ftl_context_t* ptr_ftl_context, struct dftl_context_t* ptr_dftl_context, struct dftl_cached_mapping_entry_t* ptr_evict);
@@ -92,7 +92,8 @@ static void print_block_info(struct flash_block_t* target_block) {
 //translate the logical page address into the physical page address
 uint32_t dftl_get_physical_address(
 		struct ftl_context_t* ptr_ftl_context, 
-		uint32_t logical_page_address){
+		uint32_t logical_page_address,
+		uint32_t read_write){
 
 	/*Write Your Own Code*/
 	struct ftl_page_mapping_context_t* ptr_pg_mapping = 
@@ -114,7 +115,7 @@ uint32_t dftl_get_physical_address(
 
 	/* step 2. if not in CMT, it should make new entry for CMT */
 	/* before that we should read from GTD */
-	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address)) == -1) {
+	if((physical_page_address = get_mapping_from_gtd(ptr_ftl_context, ptr_dftl_table, logical_page_address, read_write)) == -1) {
 		return -2;
 	}
 	/* step 2-1. at first we should check CMT is full or not */
@@ -329,9 +330,6 @@ static void evict_cmt(
 			printf("evict_cmt : Global translation directory modification failed\n");
 			exit(1);
 		}
-		printf("dftl evict : target index [%u] in GTD => physical tpage addr [%u]\n",
-			index, ptr_dftl_context->ptr_global_translation_directory[index]);
-
 		/* batch eviction */
 		for(loop = victim; loop != ptr_dftl_context->ptr_cached_mapping_table_head; ) {
 			struct dftl_cached_mapping_entry_t* prev;
@@ -347,7 +345,6 @@ static void evict_cmt(
 			}
 		}
 	}
-	printf("dftl evict : cached map table entry # = %u\n", ptr_dftl_context->nr_cached_mapping_table_entries);
 	perf_dftl_cmt_eviction();
 }
 
@@ -355,7 +352,8 @@ static void evict_cmt(
 static uint32_t get_mapping_from_gtd(
 		struct ftl_context_t* ptr_ftl_context,
 		struct dftl_context_t* ptr_dftl_context,
-		uint32_t logical_page_address){
+		uint32_t logical_page_address,
+		uint32_t read_write){ // read_write : mode switch flag ; read[1] , write[0]
 	uint32_t physical_page_address, curr_bus, curr_chip, curr_block, curr_page, loop;
 	/* curr_bus = curr_chip = 0 */
 	uint32_t physical_translation_page_address, physical_translation_page_offset; 
@@ -400,7 +398,8 @@ static uint32_t get_mapping_from_gtd(
 	}
 	/* now get real physical_page_address */
 	if(physical_page_address == GTD_FREE) {
-		printf("get_mapping_from_gtd : read physical addr is free addr\n");
+		if(read_write) // only read case is problem, write case is possible situation
+			printf("get_mapping_from_gtd : read physical addr is free addr\n");
 
 		physical_page_address = -1;
 	}

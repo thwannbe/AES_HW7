@@ -20,7 +20,7 @@ struct dftl_context_t {
 };
 
 //translate the logical address to the physical address (for the read request case)
-uint32_t dftl_get_physical_address(struct ftl_context_t* ptr_ftl_context, uint32_t logical_page_address);
+uint32_t dftl_get_physical_address(struct ftl_context_t* ptr_ftl_context, uint32_t logical_page_address, uint32_t read_write);
 
 //insert a new translation entry into the CMT (for the write request case with a new physical page address) 
 uint32_t dftl_map_logical_to_physical(struct ftl_context_t* ptr_ftl_context, uint32_t logical_page_address, uint32_t physical_page_address);

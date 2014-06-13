@@ -469,7 +469,8 @@ int32_t map_logical_to_physical(struct ftl_context_t* ptr_ftl_context, uint32_t 
 
 	// (2) change the status of the previous block.
 	// get the previous physical page address from the CMT
-	if((previous_physical_page_address = dftl_get_physical_address(ptr_ftl_context, logical_page_address)) != -2) {
+	// read_write bit is 0
+	if((previous_physical_page_address = dftl_get_physical_address(ptr_ftl_context, logical_page_address, 0)) != -2) {
 		// make the previous page invalid
 		/* at first, error checking */
 		if(previous_physical_page_address == -1) {
@@ -579,7 +580,7 @@ int32_t dftl_mapping_get_mapped_physical_page_address (
 	int32_t ret = -1;
 	
 	/* obtain the physical page address using the page mapping table */
-	physical_page_address = dftl_get_physical_address(ptr_ftl_context, logical_page_address);
+	physical_page_address = dftl_get_physical_address(ptr_ftl_context, logical_page_address, 1); //read_write = 1(read)
 	if(physical_page_address == -1 || physical_page_address == -2) {
 		/* the requested logical page is not mapped to any physical page */
 		*ptr_bus = *ptr_chip = *ptr_block = *ptr_page = -1;
