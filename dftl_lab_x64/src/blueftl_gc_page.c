@@ -341,6 +341,13 @@ int32_t gc_dftl_trigger_gc (
 	if(ptr_gc_block->nr_free_pages != NR_PAGES_PER_BLOCK || ptr_gc_block->is_reserved_block != 1) {
 		printf("gc_dftl_trigger_gc : gc block is not appropriate\n");
 		print_reserved_block_status(ptr_pg_mapping);
+		if(ptr_gc_block->nr_free_pages != NR_PAGES_PER_BLOCK) {
+			for(loop_page = 0; loop_page < NR_PAGES_PER_BLOCK; loop_page++) {
+				if(ptr_gc_block->list_pages[loop_page].page_status == PAGE_STATUS_VALID) {
+					printf("gc_dftl_trigger_gc : gc block's valid page[%u] ; LPA [%u]\n", loop_page, ptr_gc_block->list_pages[loop_page].no_logical_page_addr);
+				}
+			}
+		}
 		ret = -1;
 		goto failed;
 	}
