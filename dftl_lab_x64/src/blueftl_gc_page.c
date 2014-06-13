@@ -304,6 +304,7 @@ int32_t gc_dftl_trigger_gc (
 	struct ftl_page_mapping_context_t* ptr_pg_mapping =
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
+	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 
 	printf("gc_dftl_trigger_gc called, gc_type[%s]\n", (gc_type) ? "TBLOCK" : "DBLOCK");
 	/* step 1. select victim_block */
@@ -368,6 +369,16 @@ int32_t gc_dftl_trigger_gc (
 		if(ptr_victim_block->nr_valid_pages >0){
 			for(loop_page_victim = 0; loop_page_victim < NR_PAGES_PER_BLOCK; loop_page_victim++) {
 				struct flash_page_t* ptr_cur_page = &(ptr_victim_block->list_pages[loop_page_victim]);
+				struct flash_block_t* translation_block = NULL;
+				uint32_t* ptr_global_translation_directory = ptr_dftl_table->ptr_global_translation_directory;
+				uint32_t index_global_translation_directory;
+				uint32_t physical_translation_page_address;
+				struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
+				uint32_t modified_physical_page_address;
+
+				uint32_t bus, chip, block, page;
+				uint8_t* block_buff = (uint8_t*)malloc(sizeof(uint8_t) * FLASH_PAGE_SIZE * NR_PAGES_PER_BLOCK);
+				uint8_t* page_pointer = 0; 
 				if(ptr_cur_page->page_status == PAGE_STATUS_VALID) {
 					logical_page_address = ptr_cur_page->no_logical_page_addr;
 					blueftl_user_vdevice_page_read(
@@ -387,7 +398,7 @@ int32_t gc_dftl_trigger_gc (
 							loop_page_gc,
 							FLASH_PAGE_SIZE,
 							(char*) gc_buff);
-
+#if 0
 					if(dftl_mapping_map_logical_to_physical(
 						ptr_ftl_context,
 						logical_page_address,
@@ -415,7 +426,81 @@ int32_t gc_dftl_trigger_gc (
 							goto failed;
 						}
 					}
-					
+#endif
+					ptr_victim_block->last_modified_time = timer_get_timestamp_in_sec ();
+					ptr_victim_block->nr_invalid_pages++;
+					ptr_victim_block->nr_valid_pages--;
+					ptr_cur_page->page_status = PAGE_STATUS_INVALID;
+					ptr_cur_page->no_logical_page_addr = -1;
+
+					ptr_gc_block->last_modified_time = timer_get_timestamp_in_sec ();
+					ptr_gc_block->nr_valid_pages++;
+					ptr_gc_block->nr_free_pages--;
+					ptr_gc_block->list_pages[loop_page_gc].page_status = PAGE_STATUS_VALID;
+					ptr_gc_block->list_pages[loop_page_gc].no_logical_page_addr = logical_page_address;
+				
+					modified_physical_page_address = ftl_convert_to_physical_page_address(ptr_gc_block->no_bus, ptr_gc_block->no_chip, ptr_gc_block->no_block, loop_page_gc);
+					for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
+							target_cached_mapping_entry != dftl_cached_mapping_table_head;
+							target_cached_mapping_entry = target_cached_mapping_entry->next) {
+						if(target_cached_mapping_entry->logical_page_address == logical_page_address) {
+							target_cached_mapping_entry->physical_page_address = modified_physical_page_address;
+							insert_mapping(ptr_ftl_context, ptr_dftl_table, target_cached_mapping_entry, 0);
+							goto check_out;
+						}
+					}
+					/* in this case we should update translation page and GTD */
+					/* step 1. get translation physical_page_address */
+					index_global_translation_directory = logical_page_address/512;
+					if((physical_translation_page_address = ptr_global_translation_directory[index_global_translation_directory]) == GTD_FREE) {
+						printf("gc_dftl_trigger_gc : index_global_translation_directory is GTD_FREE\n");
+						ret = -1;
+						goto failed;
+					}
+					ftl_convert_to_ssd_layout(physical_translation_page_address, &bus, &chip, &block, &page);
+					translation_block = &ptr_ssd->list_buses[bus].list_chips[chip].list_blocks[block];
+					/* step 2. copy translation block into buffer */
+					page_pointer = block_buff;
+					for(loop_page = 0; loop_page < NR_PAGES_PER_BLOCK; loop_page++) {
+						blueftl_user_vdevice_page_read (
+								_ptr_vdevice,
+								bus, chip, block, loop_page,
+								sizeof(uint8_t) * FLASH_PAGE_SIZE,
+								(char*)page_pointer);
+						perf_inc_tpage_reads();
+						page_pointer += FLASH_PAGE_SIZE;
+					}
+					/* step 3. modify translation page data in buffer as change */
+					physical_translation_page_offset = (logical_page_address % 512) * 4;
+					page_pointer = block_buff + page * FLASH_PAGE_SIZE; //starting point of translation page
+					for(loop = 0; loop < 4; loop++) {
+						uint8_t tmp;
+						uint32_t tmp_32;
+						tmp_32 = (modified_physical_page_address >> 8*(3-loop)) & 0xff; /*  taken only 1 byte */
+						tmp = (uint8_t) tmp_32;
+						page_pointer[physical_translation_page_offset + 3 - loop] = tmp;
+					}
+					/* step 4. erase translation block */
+					blueftl_user_vdevice_block_erase(
+							_ptr_vdevice,
+							bus, chip, block);
+					perf_gc_inc_tblk_erasures();
+					translation_block->nr_erase_cnt++;
+					translation_block->last_modified_time = timer_get_timestamp_in_sec();
+					// nothing change, just erase and upload modified data.
+					/* step 5. copy modified translation data into erased block */
+					page_pointer = block_buff;
+					for(loop_page = 0; loop_page < NR_PAGES_PER_BLOCK; loop_page++) {
+						blueftl_user_vdevice_page_write (
+								_ptr_vdevice,
+								bus, chip, block, loop_page,
+								sizeof(uint8_t) * FLASH_PAGE_SIZE,
+								(char*)page_pointer);
+						perf_inc_tpage_writes();
+						page_pointer += FLASH_PAGE_SIZE;
+					}
+
+check_out:
 					/* copy success check */
 					if(ptr_cur_page->page_status != PAGE_STATUS_INVALID)
 					{
