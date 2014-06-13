@@ -517,7 +517,7 @@ int32_t map_logical_to_physical(struct ftl_context_t* ptr_ftl_context, uint32_t 
 			return -1;
 		}
 	}
-
+	
 	// (3) change the status of the given block
 	ftl_convert_to_ssd_layout (physical_page_address, &curr_bus, &curr_chip, &curr_block, &curr_page);
 
@@ -655,6 +655,7 @@ int32_t dftl_mapping_map_logical_to_physical (
 	uint32_t mode)
 {
 	uint32_t physical_page_address = ftl_convert_to_physical_page_address (bus, chip, block, page);
+	printf("dftl_mapping_map_logical_to_physical : new block [%u]\n", block);
 	if(mode == 0) /* mode is always 0 */
 	return map_logical_to_physical (ptr_ftl_context, logical_page_address, physical_page_address, 0);
 	else

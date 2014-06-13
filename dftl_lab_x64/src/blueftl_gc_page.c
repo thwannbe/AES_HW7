@@ -91,6 +91,7 @@ int32_t shrink_translation_blocks (
 	 *	copy into buff, and erase all
 	 */
 
+	printf("shrink_translation_blocks called\n");
 	buff_stack = entire_tpage_buff;
 	for(loop = 0; loop < 128; loop++) {
 		uint32_t cur_tpage_paddr = ptr_dftl_table->ptr_global_translation_directory[loop];
