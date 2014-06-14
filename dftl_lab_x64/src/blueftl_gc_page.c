@@ -335,6 +335,10 @@ check_out:
 		}
 	}
 	else { /* TBLOCK */
+		printf("gc_dftl_trigger_gc for TBLOCK : before gc, tblock page status\n");
+		for(loop=0; loop<NR_PAGES_PER_BLOCK; loop++) {
+			printf("page[%u] => status[%u]\n", loop, ptr_gc_block->list_pages[loop].page_status);
+		}
 		if(ptr_victim_block->nr_valid_pages >0){
 			for(loop_page_victim = 0; loop_page_victim < NR_PAGES_PER_BLOCK; loop_page_victim++) {
 				struct flash_page_t* ptr_cur_page = &(ptr_victim_block->list_pages[loop_page_victim]);
@@ -356,7 +360,7 @@ check_out:
 							loop_page_gc,
 							FLASH_PAGE_SIZE,
 							(char*) gc_buff);
-
+				
 					/* update GTD */
 					/* step 1. find out current translation entry in GTD */
 					for(loop = 0; loop < 128; loop++) {

@@ -550,6 +550,10 @@ got_trans:
 	if(ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status != PAGE_STATUS_FREE) {
 		printf("write_back_tpage : target tpage[bus %u chip %u block %u, page %u] is not free[curr status %u]\n",
 				curr_bus, curr_chip, curr_block, curr_page, ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status);
+		print_reserved_block_status(ptr_pg_mapping);
+		for(loop = 0; loop <ptr_ssd->nr_pages_per_block; loop++) {
+			printf("page[%u] => status[%u]\n", loop, ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[loop].page_status);
+		}
 		ret = -1;
 		goto failed;
 	}
