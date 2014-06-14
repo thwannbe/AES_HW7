@@ -326,6 +326,7 @@ int32_t gc_dftl_trigger_gc (
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 
+	printf("gc_dftl_trigger_gc called, gc_type[%u]\n", gc_type);
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_dftl_table, ptr_ssd, gc_target_bus, gc_target_chip, gc_type)) == NULL) {
 		printf("gc_dftl_trigger_gc : select victim block is failed\n");
