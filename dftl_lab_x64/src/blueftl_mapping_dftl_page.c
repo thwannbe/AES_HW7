@@ -100,8 +100,6 @@ uint32_t dftl_get_physical_address(
 	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
 	uint32_t physical_page_address;
 	
-	printf("dftl_get_physical_address called : LPA [%u]\n", logical_page_address);
-
 	dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 	/* step 1. search in CMT ; hit -> end, miss -> next step */
 	for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
@@ -149,7 +147,6 @@ uint32_t dftl_map_logical_to_physical(
 	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
 	int new;
 
-	printf("dftl_map_logical_to_physical called : LPA [%u] PPA [%u]\n", logical_page_address, physical_page_address);
 	/* step 1. find target entry which match logical_page_address in CMT */
 	for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
 		target_cached_mapping_entry != dftl_cached_mapping_table_head;
@@ -240,7 +237,6 @@ int insert_mapping(
 	struct dftl_cached_mapping_entry_t* prev = NULL;
 	struct dftl_cached_mapping_entry_t* origin_last = NULL;
 
-	printf("insert_mapping called : insert entry's LPA [%u] PPA [%u]\n", entry->logical_page_address, entry->physical_page_address);
 	/* step 1. check if cmt is full or not */
 	if(isFull(ptr_dftl_context) == 1 && new) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
@@ -316,7 +312,6 @@ static void evict_cmt(
 	struct dftl_cached_mapping_entry_t* loop = NULL;
 	uint32_t index, physical_tpage_address;
 
-	printf("evict_cmt called : victim's LPA [%u] PPA [%u]\n", victim->logical_page_address, victim->physical_page_address);
 	if(victim->dirty == 0) { /* it could be evicted without gtd modification */
 		ptr_dftl_context->ptr_cached_mapping_table_head->next = victim->next;
 		free(victim);
@@ -409,8 +404,6 @@ static uint32_t get_mapping_from_gtd(
 failed:
 	if(ptr_buff)
 		free(ptr_buff);
-	
-	printf("get_mapping_from_gtd called : LPA [%u] PPA [%u]\n", logical_page_address, physical_page_address);
 
 	return physical_page_address;
 }

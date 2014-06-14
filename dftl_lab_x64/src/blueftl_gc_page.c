@@ -306,7 +306,6 @@ int32_t gc_dftl_trigger_gc (
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 
-	printf("gc_dftl_trigger_gc called, gc_type[%s]\n", (gc_type) ? "TBLOCK" : "DBLOCK");
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_ssd, gc_target_bus, gc_target_chip)) == NULL) {
 		printf("gc_dftl_trigger_gc : select victim block is failed\n");
@@ -332,7 +331,6 @@ int32_t gc_dftl_trigger_gc (
 		}
 	}
 
-	printf("gc_dftl_trigger_gc_called, victim_block [%u], victime_type[%s]\n", ptr_victim_block->no_block, (victim_type) ? "TBLOCK" : "DBLOCK");
 	/* step 2. prepare gc reserved block */
 	if(!victim_type) {
 		if((ptr_gc_block = *(ptr_pg_mapping->ptr_gc_blocks)) == NULL) {
@@ -640,8 +638,6 @@ check_out:
 	else
 		*(ptr_pg_mapping->ptr_active_blocks) = ptr_gc_block; /* now new active block for DBLOCK is ptr_gc_block */
 	
-	//for debug
-	print_reserved_block_status(ptr_pg_mapping);
 failed:
 	return ret;
 }
