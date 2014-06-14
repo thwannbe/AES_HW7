@@ -368,6 +368,8 @@ void dftl_mapping_destroy_ftl_context(struct ftl_context_t* ptr_ftl_context)
 		free (ptr_pg_mapping->ptr_dftl_table);
 	}
 
+	printf("destory test ... \n");
+
 	/* destroy the ftl context */
 	ssdmgmt_destroy_ssd (ptr_ssd);
 
