@@ -537,6 +537,10 @@ got_trans:
 	if(physical_translation_page_address != GTD_FREE) {
 		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status =
 			PAGE_STATUS_INVALID;
+		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].no_logical_page_addr = -1;
+		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].nr_valid_pages--;
+		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].nr_invalid_pages++;
+		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].last_modified_time = timer_get_timestamp_in_sec();
 	}
 	/* check new page area is free */
 	curr_bus = ptr_translation_block->no_bus;
@@ -555,6 +559,7 @@ got_trans:
 	ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].no_logical_page_addr = index_global_translation_directory;
 	ptr_translation_block->nr_valid_pages++;
 	ptr_translation_block->nr_free_pages--;
+	ptr_translation_block->last_modified_time = timer_get_timestamp_in_sec();
 	
 	blueftl_user_vdevice_page_write (
 		_ptr_vdevice,

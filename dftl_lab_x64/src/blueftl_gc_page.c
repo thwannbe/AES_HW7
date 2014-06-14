@@ -282,6 +282,7 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 			if(ptr_dftl_table->ptr_global_translation_directory[loop] != GTD_FREE) {
 				ftl_convert_to_ssd_layout(ptr_dftl_table->ptr_global_translation_directory[loop], &curr_bus, &curr_chip, &curr_block, &curr_page);
 				ptr_curr_block = &ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block];
+				print_block_info(ptr_curr_block);
 				if(nr_max_invalid_pages < ptr_curr_block->nr_invalid_pages) {
 					ptr_victim_block = ptr_curr_block;
 					nr_max_invalid_pages = ptr_curr_block->nr_invalid_pages;
