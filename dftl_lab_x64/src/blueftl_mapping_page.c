@@ -651,7 +651,6 @@ int32_t dftl_mapping_map_logical_to_physical (
 	uint32_t mode)
 {
 	uint32_t physical_page_address = ftl_convert_to_physical_page_address (bus, chip, block, page);
-	printf("dftl_mapping_map_logical_to_physical : new block [%u]\n", block);
 	if(mode == 0) /* mode is always 0 */
 	return map_logical_to_physical (ptr_ftl_context, logical_page_address, physical_page_address, 0);
 	else
