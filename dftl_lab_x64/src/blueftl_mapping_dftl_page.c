@@ -513,7 +513,6 @@ new_entry: /* step 2. modify translation page in buffer */
 			= *(ptr_pg_mapping->ptr_translation_blocks)
 			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
 
-got_trans:
 		if (ptr_translation_block == NULL) {
 			/* need gc tblock */
 			if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
@@ -532,9 +531,12 @@ got_trans:
 		ptr_translation_block->is_reserved_block = 1;
 		ptr_pg_mapping->nr_tblock++;
 	}
+
+got_trans:
 	/* now we got translation block which has free page for new translation page */
 	/* make invalid previous translation page, if it exists */
 	if(physical_translation_page_address != GTD_FREE) {
+		ftl_convert_to_ssd_layout (physical_translation_page_address, &curr_bus, &curr_chip, &curr_block, &curr_page);
 		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status =
 			PAGE_STATUS_INVALID;
 		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].no_logical_page_addr = -1;
