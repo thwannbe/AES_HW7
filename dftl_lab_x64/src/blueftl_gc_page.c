@@ -292,6 +292,9 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 
 	if (ptr_victim_block == NULL) {
 		printf("gc_dftl_select_victim_greedy : 'ptr_victim_block' is NULL\n");
+		if(gc_type) {
+			print_curr_dftl_gtd(ptr_dftl_table);
+		}
 	}
 	
 	return ptr_victim_block;
@@ -641,7 +644,7 @@ find_out:
 		*(ptr_pg_mapping->ptr_translation_blocks) = ptr_gc_block; /* now new translation block for TBLOCK is ptr_gc_block */
 	else
 		*(ptr_pg_mapping->ptr_active_blocks) = ptr_gc_block; /* now new active block for DBLOCK is ptr_gc_block */
-	
+
 failed:
 	return ret;
 }
