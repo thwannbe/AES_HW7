@@ -99,7 +99,8 @@ uint32_t dftl_get_physical_address(
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = NULL;
 	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
 	uint32_t physical_page_address;
-	
+
+	printf("dftl_get_physical_address called\n");
 	dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 	/* step 1. search in CMT ; hit -> end, miss -> next step */
 	for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
@@ -147,6 +148,7 @@ uint32_t dftl_map_logical_to_physical(
 	struct dftl_cached_mapping_entry_t* target_cached_mapping_entry = NULL;
 	int new;
 
+	printf("dftl_map_logical_to_physical called\n");
 	/* step 1. find target entry which match logical_page_address in CMT */
 	for(target_cached_mapping_entry=dftl_cached_mapping_table_head->next;
 		target_cached_mapping_entry != dftl_cached_mapping_table_head;
@@ -237,6 +239,7 @@ int insert_mapping(
 	struct dftl_cached_mapping_entry_t* prev = NULL;
 	struct dftl_cached_mapping_entry_t* origin_last = NULL;
 
+	printf("insert_mapping called\n");
 	/* step 1. check if cmt is full or not */
 	if(isFull(ptr_dftl_context) == 1 && new) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
@@ -312,6 +315,7 @@ static void evict_cmt(
 	struct dftl_cached_mapping_entry_t* loop = NULL;
 	uint32_t index, physical_tpage_address;
 
+	printf("evict_cmt called\n");
 	if(victim->dirty == 0) { /* it could be evicted without gtd modification */
 		ptr_dftl_context->ptr_cached_mapping_table_head->next = victim->next;
 		free(victim);
@@ -359,7 +363,8 @@ static uint32_t get_mapping_from_gtd(
 	uint8_t* ptr_buff = (uint8_t*)malloc(sizeof(uint8_t) * FLASH_PAGE_SIZE);
 	
 	/*Write Your Own Code*/
-
+	
+	printf("get_mapping_from_gtd called\n");
 	/* page_offset is aligned as uint8_t, check if this offset is out of range */
 	if((physical_translation_page_offset = (logical_page_address % 512) * 4) >= FLASH_PAGE_SIZE) {
 		printf("get_mapping_from_gtd : translation_page offset in gtd is out of range\n");
@@ -429,6 +434,7 @@ static uint32_t write_back_tpage(
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
 	uint32_t ret = 0;
 	
+	printf("write_back_tpage called\n");
 	/* initialize ptr_buff in case of new entry */
 	memset(ptr_buff, GTD_FREE, sizeof(uint8_t) * FLASH_PAGE_SIZE); /* filled with 0xff */ 
 
