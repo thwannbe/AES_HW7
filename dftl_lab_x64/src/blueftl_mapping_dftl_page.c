@@ -237,8 +237,6 @@ int insert_mapping(
 	struct dftl_cached_mapping_entry_t* prev = NULL;
 	struct dftl_cached_mapping_entry_t* origin_last = NULL;
 
-	uint32_t i; //for debug
-
 	/* step 1. check if cmt is full or not */
 	if(isFull(ptr_dftl_context) == 1 && new) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
@@ -260,13 +258,7 @@ int insert_mapping(
 
 	if(new)
 		ptr_dftl_context->nr_cached_mapping_table_entries++;
-
-
-	printf("-:: entire block info ::-\n");
-	for(i = 0; i< ptr_ftl_context->ptr_ssd->nr_blocks_per_chip; i++) {
-		print_block_info(&ptr_ftl_context->ptr_ssd->list_buses[0].list_chips[0].list_blocks[i]);
-	}
-	print_reserved_block_status((struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping);
+	
 	return 0;
 }
 
@@ -508,6 +500,7 @@ new_entry: /* step 2. modify translation page in buffer */
 	{
 		/* before allocating new translation block, we should check whether the number of translation block is over overprovising blocks */
 		if(ptr_pg_mapping->nr_tblock >= ptr_ssd->nr_blocks_per_chip - NR_BLOCKS_PER_CHIP) {
+			printf("write_back_tpage : nr_tblock is over\n");
 			if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
 					printf("write_back_tpage : gc_dftl_trigger_gc is failed\n");
 					ret = -1;
