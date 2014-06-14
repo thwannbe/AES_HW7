@@ -242,9 +242,11 @@ failed:
 
 //Victim selection for GC
 struct flash_block_t* gc_dftl_select_victim_greedy (
+	struct dftl_context_t* ptr_dftl_table, 
 	struct flash_ssd_t* ptr_ssd,
 	int32_t gc_target_bus, 
-	int32_t gc_target_chip)
+	int32_t gc_target_chip,
+	int32_t gc_type) // gc_type [0] : DBLOCK, [1] : TBLOCK
 {
 
 	/* Write Your Own Code */
@@ -253,21 +255,37 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 	uint32_t nr_max_invalid_pages = 0;
 	uint32_t nr_cur_invalid_pages;
 	uint32_t loop_block;
+	uint32_t loop;
 	
-	for(loop_block = 0; loop_block < ptr_ssd->nr_blocks_per_chip; loop_block++) {
-		nr_cur_invalid_pages = 
-			ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
-		if(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].is_reserved_block == 0) {	
-			if(nr_cur_invalid_pages == NR_PAGES_PER_BLOCK) {
-				ptr_victim_block =
-					&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
-				return ptr_victim_block;
-			}
+	if(!gc_type) { // gc type = DBLOCK => victim block is DBLOCK or TBLOCK
+		for(loop_block = 0; loop_block < ptr_ssd->nr_blocks_per_chip; loop_block++) {
+			nr_cur_invalid_pages = 
+				ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
+			if(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].is_reserved_block == 0) {	
+				if(nr_cur_invalid_pages == NR_PAGES_PER_BLOCK) {
+					ptr_victim_block =
+						&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
+					return ptr_victim_block;
+				}
 
-			if(nr_max_invalid_pages < nr_cur_invalid_pages) {
-				nr_max_invalid_pages = nr_cur_invalid_pages;
-				ptr_victim_block =
-					&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
+				if(nr_max_invalid_pages < nr_cur_invalid_pages) {
+					nr_max_invalid_pages = nr_cur_invalid_pages;
+					ptr_victim_block =
+						&(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block]);
+				}
+			}
+		}
+	} else { // gc type = TBLOCK => victim block is always TBLOCK
+		for(loop = 0; loop < 128; loop++) {
+			uint32_t curr_bus, curr_chip, curr_block, curr_page;
+			struct flash_block_t* ptr_curr_block = NULL;
+			if(ptr_dftl_table->ptr_global_translation_directory[loop] != GTD_FREE) {
+				ftl_convert_to_ssd_layout(ptr_dftl_table->ptr_global_translation_directory[loop], &curr_bus, &curr_chip, &curr_block, &curr_page);
+				ptr_curr_block = &ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block];
+				if(nr_max_invalid_pages < ptr_curr_block->nr_invalid_pages) {
+					ptr_victim_block = ptr_curr_block;
+					nr_max_invalid_pages = ptr_curr_block->nr_invalid_pages;
+				}
 			}
 		}
 	}
@@ -309,7 +327,7 @@ int32_t gc_dftl_trigger_gc (
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 
 	/* step 1. select victim_block */
-	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_ssd, gc_target_bus, gc_target_chip)) == NULL) {
+	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_dftl_table, ptr_ssd, gc_target_bus, gc_target_chip, gc_type)) == NULL) {
 		printf("gc_dftl_trigger_gc : select victim block is failed\n");
 		ret = -1;
 		goto failed;
@@ -399,35 +417,7 @@ int32_t gc_dftl_trigger_gc (
 							loop_page_gc,
 							FLASH_PAGE_SIZE,
 							(char*) gc_buff);
-#if 0
-					if(dftl_mapping_map_logical_to_physical(
-						ptr_ftl_context,
-						logical_page_address,
-						ptr_gc_block->no_bus,
-						ptr_gc_block->no_chip,
-						ptr_gc_block->no_block,
-						loop_page_gc, 0) == -1)
-					{
-						/* one more chance */
-						if(shrink_translation_blocks(ptr_ftl_context, 0, 0) == -1) {
-							printf("gc_dftl_trigger_gc : shrink tblock is failed\n");
-							ret = -1;
-							goto failed;
-						}
-						if(dftl_mapping_map_logical_to_physical(
-							ptr_ftl_context,
-							logical_page_address,
-							ptr_gc_block->no_bus,
-							ptr_gc_block->no_chip,
-							ptr_gc_block->no_block,
-							loop_page_gc, 0) == -1) {
 
-							printf("gc_dftl_trigger_gc : victim block's mapping log to phy is failed\n");
-							ret = -1;
-							goto failed;
-						}
-					}
-#endif
 					ptr_victim_block->last_modified_time = timer_get_timestamp_in_sec ();
 					ptr_victim_block->nr_invalid_pages++;
 					ptr_victim_block->nr_valid_pages--;
@@ -527,7 +517,6 @@ check_out:
 			for(loop_page_victim = 0; loop_page_victim < NR_PAGES_PER_BLOCK; loop_page_victim++) {
 				struct flash_page_t* ptr_cur_page = &(ptr_victim_block->list_pages[loop_page_victim]);
 				if(ptr_cur_page->page_status == PAGE_STATUS_VALID) {
-					logical_page_address = ptr_cur_page->no_logical_page_addr;
 					blueftl_user_vdevice_page_read(
 							_ptr_vdevice,
 							ptr_victim_block->no_bus,
@@ -546,13 +535,25 @@ check_out:
 							FLASH_PAGE_SIZE,
 							(char*) gc_buff);
 
-					/* 'loop' is GTD index for modification */
-					ptr_dftl_table->ptr_global_translation_directory[loop] = 
-						ftl_convert_to_physical_page_address(
-							ptr_gc_block->no_bus,
-							ptr_gc_block->no_chip,
-							ptr_gc_block->no_block,
-							loop_page_gc);
+					/* update GTD */
+					/* step 1. find out current translation entry in GTD */
+					for(loop = 0; loop < 128; loop++) {
+						uint32_t curr_bus, curr_chip, curr_block, curr_page;
+						if(ptr_dftl_table->ptr_global_translation_directory[loop] != GTD_FREE) {
+							ftl_convert_to_ssd_layout(ptr_dftl_table->ptr_global_translation_directory[loop], &curr_bus, &curr_chip, &curr_block, &curr_page);
+							if(ptr_victim_block->no_bus == curr_bus && ptr_victim_block->no_chip == curr_chip && ptr_victim_block->no_block == curr_block && loop_page_victim == curr_page) {
+								goto find_out; // now 'loop' is current entry index in GTD
+							}
+						}
+					}
+					// can't find out -> error
+					printf("gc_dftl_trigger_gc : current TPAGE is not correct\n");
+					ret = -1;
+					goto failed;
+					
+find_out:
+					/* step 2. modify PPA in GTD */
+					ptr_dftl_table->ptr_global_translation_directory[loop] = ftl_convert_to_physical_page_address(ptr_gc_block->no_bus, ptr_gc_block->no_chip, ptr_gc_block->no_block, loop_page_gc);
 					
 					ptr_victim_block->last_modified_time = timer_get_timestamp_in_sec();
 

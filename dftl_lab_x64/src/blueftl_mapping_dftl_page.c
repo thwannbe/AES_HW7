@@ -501,13 +501,19 @@ new_entry: /* step 2. modify translation page in buffer */
 		/* before allocating new translation block, we should check whether the number of translation block is over overprovising blocks */
 		if(ptr_pg_mapping->nr_tblock >= ptr_ssd->nr_blocks_per_chip - NR_BLOCKS_PER_CHIP) {
 			printf("write_back_tpage : nr_tblock is over\n");
-			shrink_translation_blocks(ptr_ftl_context, 0, 0);
+			if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
+				printf("write_back_tpage : gc_dftl_trigger_gc is failed\n");
+				ret = -1;
+				goto failed;
+			}
+			goto got_trans;
 		}
 		ptr_translation_block->is_reserved_block = 0; // old translation_block is not reserved block any more
 		ptr_translation_block
 			= *(ptr_pg_mapping->ptr_translation_blocks)
 			= ssdmgmt_get_free_block(ptr_ssd, 0, 0); /* curr_bus = curr_chip = 0 */
-		
+
+got_trans:
 		if (ptr_translation_block == NULL) {
 			/* need gc tblock */
 			if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
