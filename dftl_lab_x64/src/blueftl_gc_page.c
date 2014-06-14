@@ -66,7 +66,7 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 int32_t shrink_translation_blocks (
 	struct ftl_context_t* ptr_ftl_context,
 	int32_t gc_target_bus,
-	int32_t gc_target_chip) // return value : [-1] : error , [-2] : not full
+	int32_t gc_target_chip)
 {
 	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
 	
@@ -95,10 +95,12 @@ int32_t shrink_translation_blocks (
 	/* full GTD check */
 	for(loop = 0; loop < 128; loop++) {
 		if(ptr_dftl_table->ptr_global_translation_directory[loop] == GTD_FREE) {
-			ret = -2;
+			printf("translation blocks not full\n");
+			ret = -1;
 			goto failed;
 		}
 	}
+	printf("shrink_translation_blocks : translation blocks are full\n");
 
 	buff_stack = entire_tpage_buff;
 	for(loop = 0; loop < 128; loop++) {
