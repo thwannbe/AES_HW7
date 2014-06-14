@@ -62,184 +62,6 @@ void print_reserved_block_status(struct ftl_page_mapping_context_t* ptr_pg_mappi
 	printf("*************************************************************\n");
 }
 
-/* shrink the number of translation blocks until minimum number */
-int32_t shrink_translation_blocks (
-	struct ftl_context_t* ptr_ftl_context,
-	int32_t gc_target_bus,
-	int32_t gc_target_chip)
-{
-	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
-	
-	int32_t ret = 0;
-	
-	uint32_t loop_page = 0;
-	uint32_t loop;
-
-	struct ftl_page_mapping_context_t* ptr_pg_mapping =
-		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
-	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
-
-	unsigned char *entire_tpage_buff = (unsigned char*) malloc(2 * NR_PAGES_PER_BLOCK * FLASH_PAGE_SIZE); /* entire translation page info */
-	unsigned char *buff_stack = NULL;
-
-	struct flash_block_t* new_tblock = NULL;
-
-	/* it assume that all 128 translation page is allocated, and translation blocks are over than 2blocks */
-	/* this function is focus on compressing into 2 valid translation blocks */
-
-	/* step 1. trace all translation pages in translation blocks,
-	 *	copy into buff, and erase all
-	 */
-
-	printf("shrink_translation_blocks called\n");
-	/* full GTD check */
-	for(loop = 0; loop < 128; loop++) {
-		if(ptr_dftl_table->ptr_global_translation_directory[loop] == GTD_FREE) {
-			printf("translation blocks not full\n");
-			ret = -1;
-			goto failed;
-		}
-	}
-	printf("shrink_translation_blocks : translation blocks are full\n");
-
-	buff_stack = entire_tpage_buff;
-	for(loop = 0; loop < 128; loop++) {
-		uint32_t cur_tpage_paddr = ptr_dftl_table->ptr_global_translation_directory[loop];
-		uint32_t tp_bus, tp_chip, tp_block, tp_page;
-		struct flash_block_t* ptr_cur_tblock = NULL;
-		struct flash_page_t* ptr_cur_tpage = NULL;
-		ftl_convert_to_ssd_layout(cur_tpage_paddr, &tp_bus, &tp_chip, &tp_block, &tp_page);
-		ptr_cur_tblock = &(ptr_ssd->list_buses[tp_bus].list_chips[tp_chip].list_blocks[tp_block]);
-		ptr_cur_tpage = &(ptr_ssd->list_buses[tp_bus].list_chips[tp_chip].list_blocks[tp_block].list_pages[tp_page]);
-		if(ptr_cur_tpage->page_status != PAGE_STATUS_VALID) {
-			printf("shrink_translation_blocks : current translation page[%u] should be valid (%u)\n", loop, ptr_cur_tpage->page_status);
-			ret = -1;
-			goto failed;
-		}
-		blueftl_user_vdevice_page_read(
-			_ptr_vdevice,
-			tp_bus, tp_chip, tp_block, tp_page,
-			FLASH_PAGE_SIZE,
-			(char*) buff_stack);
-		perf_inc_tpage_reads();
-		ptr_cur_tblock->last_modified_time = timer_get_timestamp_in_sec();
-
-		if (ptr_cur_tblock->nr_valid_pages > 0) {
-			ptr_cur_tblock->nr_invalid_pages++;
-			ptr_cur_tblock->nr_valid_pages--;
-
-			ptr_cur_tpage->page_status = PAGE_STATUS_INVALID;
-		}
-		else {
-			printf("shrink_translation_blocks : nr_valid_pages is zero\n");
-			ret = -1;
-			goto failed;
-		}
-		buff_stack += FLASH_PAGE_SIZE;
-	}
-	/* now all translation info is in entire_tpage_buff */
-
-	/* step 2. erase all translation block => the result should be guarantee at least 2 free blocks */
-	for(loop = 0; loop < 128; loop++) {
-		uint32_t cur_tpage_paddr = ptr_dftl_table->ptr_global_translation_directory[loop];
-		uint32_t tp_bus, tp_chip, tp_block, tp_page;
-		struct flash_block_t* ptr_cur_tblock = NULL;
-		ftl_convert_to_ssd_layout(cur_tpage_paddr, &tp_bus, &tp_chip, &tp_block, &tp_page);
-		ptr_cur_tblock = &(ptr_ssd->list_buses[tp_bus].list_chips[tp_chip].list_blocks[tp_block]);
-		if(ptr_cur_tblock->nr_valid_pages != 0) {
-			printf("shrink_translation_blocks : this translation block[%u] should be all invalid\n", tp_block);
-			ret = -1;
-			goto failed;
-		}
-		/* error checking */
-		if((ptr_cur_tblock->nr_valid_pages + ptr_cur_tblock->nr_invalid_pages + ptr_cur_tblock->nr_free_pages) !=
-			NR_PAGES_PER_BLOCK) {
-			printf("shrink_translation_blocks : this translation block[%u] has wrong nr block info\n", tp_block);
-			ret = -1;
-			goto failed;
-		}
-		/* if it is not free yet, make it free */
-		if(ptr_cur_tblock->nr_invalid_pages == NR_PAGES_PER_BLOCK) {
-			blueftl_user_vdevice_block_erase(
-				_ptr_vdevice,
-				tp_bus, tp_chip, tp_block);
-			perf_inc_tblock_erasures();
-
-			ptr_cur_tblock->nr_free_pages = NR_PAGES_PER_BLOCK;
-			ptr_cur_tblock->nr_valid_pages = 0;
-			ptr_cur_tblock->nr_invalid_pages = 0;
-			ptr_cur_tblock->nr_erase_cnt++;
-			ptr_cur_tblock->last_modified_time = 0;
-		}
-
-		for(loop_page = 0; loop_page < NR_PAGES_PER_BLOCK; loop_page++) {
-			ptr_cur_tblock->list_pages[loop_page].no_logical_page_addr = -1;
-			ptr_cur_tblock->list_pages[loop_page].page_status = PAGE_STATUS_FREE;
-		}
-	}
-
-	/* step 3. copy entire translation info in buffer into 2 free translation blocks */
-	if(!(new_tblock = ssdmgmt_get_free_block (ptr_ssd, 0, 0))) {
-		printf("shrink_translation_blocks : free block should exist\n");
-		ret = -1;
-		goto failed;
-	}
-	new_tblock->is_reserved_block = 0; // prepare this block is not reserved one
-	buff_stack = entire_tpage_buff; loop_page = 0;/* loop_page reuse */
-	for(loop = 0; loop < 128; loop++) {
-		uint32_t tp_bus, tp_chip, tp_block, tp_page;
-		struct flash_page_t* ptr_cur_tpage = NULL;
-		/* get new tblock's bus, chip, block, page */
-		tp_bus = new_tblock->no_bus;
-		tp_chip = new_tblock->no_chip;
-		tp_block = new_tblock->no_block;
-		tp_page = loop_page;
-		ptr_cur_tpage = &(ptr_ssd->list_buses[tp_bus].list_chips[tp_chip].list_blocks[tp_block].list_pages[tp_page]);
-		
-		if(ptr_cur_tpage->page_status != PAGE_STATUS_FREE) {
-			printf("shrink_translation_blocks : new translation page[%u] should be free (%u)\n", loop, ptr_cur_tpage->page_status);
-			ret = -1;
-			goto failed;
-		}
-		blueftl_user_vdevice_page_write(
-			_ptr_vdevice,
-			tp_bus, tp_chip, tp_block, tp_page,
-			FLASH_PAGE_SIZE,
-			(char*) buff_stack);
-		perf_inc_tpage_writes();
-		new_tblock->last_modified_time = timer_get_timestamp_in_sec();
-
-		if (new_tblock->nr_free_pages > 0) {
-			new_tblock->nr_valid_pages++;
-			new_tblock->nr_free_pages--;
-
-			ptr_cur_tpage->page_status = PAGE_STATUS_VALID;
-		}
-		else {
-			printf("shrink_translation_blocks : nr_free_pages is zero\n");
-			ret = -1;
-			goto failed;
-		}
-		loop_page++;
-		buff_stack += FLASH_PAGE_SIZE;
-		ptr_dftl_table->ptr_global_translation_directory[loop] = ftl_convert_to_physical_page_address(tp_bus, tp_chip, tp_block, tp_page);
-		if(loop_page > 63) { /* next new translation block is needed */
-			if(!(new_tblock = ssdmgmt_get_free_block (ptr_ssd, 0, 0))) {
-				printf("shrink_translation_blocks : free block should exist\n");
-				ret = -1;
-				goto failed;
-			}
-			new_tblock->is_reserved_block = 1; // prepare this block is reserved one, because it is second tblock
-			loop_page = 0;
-		}		
-	}
-	
-failed:
-	return ret;
-	
-}
-
-
 //Victim selection for GC
 struct flash_block_t* gc_dftl_select_victim_greedy (
 	struct dftl_context_t* ptr_dftl_table, 
@@ -282,7 +104,6 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 			if(ptr_dftl_table->ptr_global_translation_directory[loop] != GTD_FREE) {
 				ftl_convert_to_ssd_layout(ptr_dftl_table->ptr_global_translation_directory[loop], &curr_bus, &curr_chip, &curr_block, &curr_page);
 				ptr_curr_block = &ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block];
-				print_block_info(ptr_curr_block);
 				if(nr_max_invalid_pages < ptr_curr_block->nr_invalid_pages) {
 					ptr_victim_block = ptr_curr_block;
 					nr_max_invalid_pages = ptr_curr_block->nr_invalid_pages;
@@ -293,9 +114,6 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 
 	if (ptr_victim_block == NULL) {
 		printf("gc_dftl_select_victim_greedy : 'ptr_victim_block' is NULL\n");
-		if(gc_type) {
-			print_curr_dftl_gtd(ptr_dftl_table);
-		}
 	}
 	
 	return ptr_victim_block;
@@ -330,7 +148,6 @@ int32_t gc_dftl_trigger_gc (
 	struct dftl_context_t* ptr_dftl_table = ptr_pg_mapping->ptr_dftl_table;
 	struct dftl_cached_mapping_entry_t* dftl_cached_mapping_table_head = ptr_dftl_table->ptr_cached_mapping_table_head;
 
-	printf("gc_dftl_trigger_gc called, gc_type[%u]\n", gc_type);
 	/* step 1. select victim_block */
 	if((ptr_victim_block = gc_dftl_select_victim_greedy(ptr_dftl_table, ptr_ssd, gc_target_bus, gc_target_chip, gc_type)) == NULL) {
 		printf("gc_dftl_trigger_gc : select victim block is failed\n");
@@ -606,6 +423,9 @@ find_out:
 						ret = -1;
 						goto failed;
 					}
+
+					loop_page_gc++;
+					perf_gc_inc_tpage_copies ();
 				}
 			}
 		}
