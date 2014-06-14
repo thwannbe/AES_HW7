@@ -294,6 +294,9 @@ struct ftl_context_t* dftl_mapping_create_ftl_context (struct virtual_device_t* 
 	printf ("blueftl_mapping_page: Initialized Success!\n");
 	/* set virtual device */
 	ptr_ftl_context->ptr_vdevice = ptr_vdevice;
+	
+	//for debug
+	printf("total block number : registered[%u]\n", ptr_ssd->nr_blocks_per_chip);
 
 	return ptr_ftl_context;
 
@@ -367,8 +370,6 @@ void dftl_mapping_destroy_ftl_context(struct ftl_context_t* ptr_ftl_context)
 		destroy_dftl(ptr_pg_mapping->ptr_dftl_table);
 		free (ptr_pg_mapping->ptr_dftl_table);
 	}
-
-	printf("destory test ... \n");
 
 	/* destroy the ftl context */
 	ssdmgmt_destroy_ssd (ptr_ssd);
