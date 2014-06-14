@@ -239,7 +239,7 @@ int insert_mapping(
 	struct dftl_cached_mapping_entry_t* prev = NULL;
 	struct dftl_cached_mapping_entry_t* origin_last = NULL;
 
-	printf("insert_mapping called\n");
+	printf("insert_mapping called : LPA [%u] PPA [%u]\n", entry->logical_page_address, entry->physical_page_address);
 	/* step 1. check if cmt is full or not */
 	if(isFull(ptr_dftl_context) == 1 && new) {
 		printf("insert_mapping : ptr_dftl_table is already full\n");
