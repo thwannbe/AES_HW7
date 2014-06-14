@@ -535,7 +535,7 @@ new_entry: /* step 2. modify translation page in buffer */
 got_trans:
 	/* now we got translation block which has free page for new translation page */
 	/* make invalid previous translation page, if it exists */
-	if(physical_translation_page_address != GTD_FREE) {
+	if((physical_translation_page_address = ptr_global_translation_directory[index_global_translation_directory]) != GTD_FREE) {
 		ftl_convert_to_ssd_layout (physical_translation_page_address, &curr_bus, &curr_chip, &curr_block, &curr_page);
 		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[curr_page].page_status =
 			PAGE_STATUS_INVALID;
@@ -556,6 +556,9 @@ got_trans:
 		for(loop = 0; loop <ptr_ssd->nr_pages_per_block; loop++) {
 			printf("page[%u] => status[%u]\n", loop, ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].list_pages[loop].page_status);
 		}
+		ftl_convert_to_ssd_layout (physical_translation_page_address, &curr_bus, &curr_chip, &curr_block, &curr_page);
+		printf("prev translation block[%u], new translation block[%u]\n", ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].no_block, ptr_translation_block->no_block);
+
 		ret = -1;
 		goto failed;
 	}
