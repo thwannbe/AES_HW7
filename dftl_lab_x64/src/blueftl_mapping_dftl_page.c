@@ -427,6 +427,7 @@ static uint32_t write_back_tpage(
 	struct flash_block_t* ptr_translation_block = NULL;
 	struct ftl_page_mapping_context_t* ptr_pg_mapping =
 		(struct ftl_page_mapping_context_t*)ptr_ftl_context->ptr_mapping;
+	uint32_t switch_got_trans = 0;
 	uint32_t ret = 0;
 	
 	/* initialize ptr_buff in case of new entry */
@@ -506,6 +507,8 @@ new_entry: /* step 2. modify translation page in buffer */
 				ret = -1;
 				goto failed;
 			}
+			printf("got_trans\n");
+			switch_got_trans = 1;
 			goto got_trans;
 		}
 		ptr_translation_block->is_reserved_block = 0; // old translation_block is not reserved block any more
@@ -545,6 +548,9 @@ got_trans:
 		ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].last_modified_time = timer_get_timestamp_in_sec();
 	}
 	/* check new page area is free */
+	if(switch_got_trans)
+		ptr_translation_block = *(ptr_pg_mapping->ptr_translation_blocks);
+	
 	curr_bus = ptr_translation_block->no_bus;
 	curr_chip = ptr_translation_block->no_chip;
 	curr_block = ptr_translation_block->no_block;
