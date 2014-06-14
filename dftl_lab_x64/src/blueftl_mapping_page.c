@@ -603,8 +603,6 @@ int32_t dftl_mapping_get_mapped_physical_page_address (
 			ret = 0;
 		}
 	}
-	//for debugging
-	printf("dftl read : LPA [%u] PPA [%u] => SSD : bus[%u] chip[%u] block[%u] page[%u]\n", logical_page_address, physical_page_address, *ptr_bus, *ptr_chip, *ptr_block, *ptr_page);
 
 	return ret;
 }
@@ -638,8 +636,6 @@ int32_t dftl_mapping_get_free_physical_page_address (
 	{
 		/* decoding the physical page address */
 		ftl_convert_to_ssd_layout (physical_page_address, ptr_bus, ptr_chip, ptr_block, ptr_page);
-		//for debugging
-		printf("dftl write : LPA [%u] PPA [%u] => SSD : bus[%u] chip[%u] block[%u] page[%u]\n", logical_page_address, physical_page_address, *ptr_bus, *ptr_chip, *ptr_block, *ptr_page);
 		ret = 0;
 	}
 	return ret;
