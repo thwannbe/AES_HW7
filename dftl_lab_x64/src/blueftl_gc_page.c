@@ -252,7 +252,7 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 	uint32_t nr_cur_invalid_pages;
 	uint32_t loop_block;
 	
-	for(loop_block = 0; loop_block < NR_BLOCKS_PER_CHIP; loop_block++) {
+	for(loop_block = 0; loop_block < ptr_ssd->nr_blocks_per_chip; loop_block++) {
 		nr_cur_invalid_pages = 
 			ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].nr_invalid_pages;
 		if(ptr_ssd->list_buses[gc_target_bus].list_chips[gc_target_chip].list_blocks[loop_block].is_reserved_block == 0) {	

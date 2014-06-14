@@ -294,9 +294,6 @@ struct ftl_context_t* dftl_mapping_create_ftl_context (struct virtual_device_t* 
 	printf ("blueftl_mapping_page: Initialized Success!\n");
 	/* set virtual device */
 	ptr_ftl_context->ptr_vdevice = ptr_vdevice;
-	
-	//for debug
-	printf("total block number : registered[%u]\n", ptr_ssd->nr_blocks_per_chip);
 
 	return ptr_ftl_context;
 
