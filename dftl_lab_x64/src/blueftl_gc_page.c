@@ -409,6 +409,7 @@ find_out:
 							ret = -1;
 							goto failed;
 						}
+						ptr_gc_block->list_pages[loop_page_gc].page_status = PAGE_STATUS_VALID;
 					}
 					else {
 						printf("gc_dftl_trigger_gc : ptr gc block's nr_free_pages is zero before writting\n");
