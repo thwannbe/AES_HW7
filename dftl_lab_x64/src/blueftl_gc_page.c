@@ -402,14 +402,18 @@ find_out:
 					if(ptr_gc_block->nr_free_pages > 0) {
 						ptr_gc_block->nr_valid_pages++;
 						ptr_gc_block->nr_free_pages--;
-
+						ptr_gc_block->list_pages[loop_page_gc].page_status = PAGE_STATUS_VALID;
+						/*
 						if (ptr_gc_block->list_pages[loop_page_gc].page_status != PAGE_STATUS_FREE) {
 							printf("gc_dftl_trigger_gc : the given page should be free (%u) (%u)\n",
-								ptr_gc_block->list_pages[loop_page_gc].page_status, loop_page_gc);
+									ptr_gc_block->list_pages[loop_page_gc].page_status, loop_page_gc);
+							print_reserved_block_status(ptr_pg_mapping);
+							for(loop = 0; loop <ptr_ssd->nr_pages_per_block; loop++) {
+								printf("page[%u] => status[%u]\n", loop, ptr_gc_block->list_pages[loop].page_status);
+							}
 							ret = -1;
 							goto failed;
-						}
-						ptr_gc_block->list_pages[loop_page_gc].page_status = PAGE_STATUS_VALID;
+						}*/
 					}
 					else {
 						printf("gc_dftl_trigger_gc : ptr gc block's nr_free_pages is zero before writting\n");
