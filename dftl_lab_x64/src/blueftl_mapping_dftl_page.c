@@ -86,6 +86,36 @@ void print_block_info(struct flash_block_t* target_block) {
 
 }
 
+void block_status_checker(struct flash_ssd_t* ptr_ssd) {
+	uint32_t loop_block;
+	struct flash_block_t* cur_block = NULL;
+	printf("block_status_checker starts!\n");
+	for(loop_block = 0; loop_block < ptr_ssd->nr_blocks_per_chip; loop_block++) {
+		uint32_t real_nr_i = 0;
+		uint32_t real_nr_v = 0;
+		uint32_t real_nr_f = 0;
+		uint32_t loop_page;
+		cur_block = &ptr_ssd->list_buses[0].list_chips[0].list_blocks[loop_block];
+		for(loop_page = 0; loop_page < ptr_ssd->nr_pages_per_block; loop_page++) {
+			switch(cur_block->list_pages[loop_page].page_status) {
+				case PAGE_STATUS_FREE :
+					real_nr_f++; break;
+				case PAGE_STATUS_VALID :
+					real_nr_v++; break;
+				case PAGE_STATUS_INVALID :
+					real_nr_i++; break;
+				default :
+					printf("block_status_checker : current page[%u] status[%u] is wrong!!\n", loop_page, cur_block->list_pages[loop_page].page_status);
+					exit(1);
+			}			
+		}
+		if(real_nr_f != cur_block->nr_free_pages || real_nr_i != cur_block->nr_invalid_pages || real_nr_v != cur_block->nr_valid_pages) {
+			printf("block_status_checker : current block[%u] has wrong page info ; real i[%u] v[%u] f[%u] : info i[%u] v[%u] f[%u]\n", loop_block,
+					real_nr_i, real_nr_v, real_nr_f, cur_block->nr_invalid_pages, cur_block->nr_valid_pages, cur_block->nr_free_pages);
+		}
+	}
+}
+
 //translate the logical page address into the physical page address
 uint32_t dftl_get_physical_address(
 		struct ftl_context_t* ptr_ftl_context, 
@@ -502,12 +532,12 @@ new_entry: /* step 2. modify translation page in buffer */
 		/* before allocating new translation block, we should check whether the number of translation block is over overprovising blocks */
 		if(ptr_pg_mapping->nr_tblock >= ptr_ssd->nr_blocks_per_chip - NR_BLOCKS_PER_CHIP) {
 			printf("write_back_tpage : nr_tblock is over\n");
+			ptr_translation_block->is_reserved_block = 0;
 			if(gc_dftl_trigger_gc(ptr_ftl_context, 0, 0, TBLOCK) == -1) {
 				printf("write_back_tpage : gc_dftl_trigger_gc is failed\n");
 				ret = -1;
 				goto failed;
 			}
-			printf("got_trans\n");
 			switch_got_trans = 1;
 			goto got_trans;
 		}
@@ -587,7 +617,7 @@ got_trans:
 failed:
 	if(ptr_buff)
 		free(ptr_buff);
-	
+
 	return ret;
 
 }

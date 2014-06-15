@@ -100,13 +100,12 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 	} else { // gc type = TBLOCK => victim block is always TBLOCK
 		for(loop = 0; loop < 128; loop++) {
 			uint32_t curr_bus, curr_chip, curr_block, curr_page;
-			struct flash_block_t* ptr_curr_block = NULL;
 			if(ptr_dftl_table->ptr_global_translation_directory[loop] != GTD_FREE) {
 				ftl_convert_to_ssd_layout(ptr_dftl_table->ptr_global_translation_directory[loop], &curr_bus, &curr_chip, &curr_block, &curr_page);
-				ptr_curr_block = &ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block];
-				if(nr_max_invalid_pages < ptr_curr_block->nr_invalid_pages && ptr_curr_block->is_reserved_block == 0) {
-					ptr_victim_block = ptr_curr_block;
-					nr_max_invalid_pages = ptr_curr_block->nr_invalid_pages;
+				if(nr_max_invalid_pages < ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].nr_invalid_pages &&
+					ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].is_reserved_block == 0) {
+					ptr_victim_block = &ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block];
+					nr_max_invalid_pages = ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block].nr_invalid_pages;
 				}
 			}
 		}
@@ -114,6 +113,18 @@ struct flash_block_t* gc_dftl_select_victim_greedy (
 
 	if (ptr_victim_block == NULL) {
 		printf("gc_dftl_select_victim_greedy : 'ptr_victim_block' is NULL\n");
+#if 0
+		for(loop = 0; loop<128; loop++) {
+			uint32_t curr_bus, curr_chip, curr_block, curr_page;
+			struct flash_block_t* ptr_curr_block = NULL;
+			if(ptr_dftl_table->ptr_global_translation_directory[loop] != GTD_FREE) {
+				ftl_convert_to_ssd_layout(ptr_dftl_table->ptr_global_translation_directory[loop], &curr_bus, &curr_chip, &curr_block, &curr_page);
+				ptr_curr_block = &ptr_ssd->list_buses[curr_bus].list_chips[curr_chip].list_blocks[curr_block];
+				printf("translation page GTD index[%u] => tblock[%u] tpage[%u]\n", loop, curr_block, curr_page);
+				print_block_info(ptr_curr_block);
+			}
+		}
+#endif
 	}
 	
 	return ptr_victim_block;
@@ -127,7 +138,6 @@ int32_t gc_dftl_trigger_gc (
 	int32_t gc_type /* DBLOCK = 0, TBLOCK = 1 */
 	)
 {
-
 	/* Write Your Own Code */
 	struct flash_ssd_t* ptr_ssd = ptr_ftl_context->ptr_ssd;
 	
@@ -466,10 +476,11 @@ find_out:
 
 	ptr_gc_block->is_reserved_block = 1;
 
-	if(gc_type) /* gc for new TBLOCK */
+	if(gc_type) { /* gc for new TBLOCK */
 		*(ptr_pg_mapping->ptr_translation_blocks) = ptr_gc_block; /* now new translation block for TBLOCK is ptr_gc_block */
-	else
+	} else {
 		*(ptr_pg_mapping->ptr_active_blocks) = ptr_gc_block; /* now new active block for DBLOCK is ptr_gc_block */
+	}
 
 failed:
 	return ret;

@@ -1,7 +1,7 @@
 #ifndef DFTL_MAPPING
 #define DFTL_MAPPING
 
-#define CMT_MAX 1024 
+#define CMT_MAX 2048
 #define GTD_FREE -1
 
 uint32_t GTD_MAX;
@@ -41,5 +41,6 @@ void print_curr_dftl_mapping_table(struct dftl_context_t* ptr_dftl_context);
 void print_curr_dftl_gtd(struct dftl_context_t* ptr_dftl_context);
 void print_page_buffer_status(uint8_t* ptr_buff);
 void print_block_info(struct flash_block_t* target_block);
+void block_status_checker(struct flash_ssd_t* ptr_ssd);
 
 #endif
